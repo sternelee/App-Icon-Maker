@@ -125,7 +125,32 @@
         }
       ],
       "trend": "stable"
+    },
+    "src/lib/icon-pipeline.ts": {
+      "latest": {
+        "commit": "145a560",
+        "timestamp": "2026-05-15T03:36:59.383Z",
+        "mi": 31.2,
+        "cognitive": 49,
+        "nesting": 6,
+        "lines": 164,
+        "maxCyclomatic": 20,
+        "entropy": 6.29
+      },
+      "history": [
+        {
+          "commit": "145a560",
+          "timestamp": "2026-05-15T03:36:59.383Z",
+          "mi": 31.2,
+          "cognitive": 49,
+          "nesting": 6,
+          "lines": 164,
+          "maxCyclomatic": 20,
+          "entropy": 6.29
+        }
+      ],
+      "trend": "stable"
     }
   },
-  "capturedAt": "2026-05-15T03:19:46.050Z"
+  "capturedAt": "2026-05-15T03:37:04.384Z"
 }

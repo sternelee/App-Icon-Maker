@@ -35,6 +35,7 @@ export function AppContent() {
 	} | null>(null);
 	const [iconDirty, setIconDirty] = useState(false);
 	const [openAIApiKeyStartupOpen, setOpenAIApiKeyStartupOpen] = useState(false);
+	const [model, setModel] = useState("gpt-image-1");
 	const [openAIApiKeyManageReason, setOpenAIApiKeyManageReason] =
 		useState<OpenAIApiKeyManageReason | null>(null);
 	const resumeAfterCancelRef = useRef<ResumeAfterCancel>("idle");
@@ -99,7 +100,7 @@ export function AppContent() {
 		setIconState("generating");
 		const referenceImage =
 			iconState === "refine" ? (baseIconSrc ?? attachments[0]) : attachments[0];
-		pipeline.generate(prompt, referenceImage);
+		pipeline.generate(prompt, model, referenceImage);
 	};
 
 	const stopGeneration = () => {
@@ -260,8 +261,40 @@ export function AppContent() {
 				</button>
 			</div>
 
+			{/* Model selector — centered between preview and input. */}
+			<div className="flex justify-center">
+				<div className="flex items-center gap-1 rounded-full border border-border bg-secondary/30 p-0.5">
+					<button
+						onClick={() => setModel("gpt-image-1")}
+						disabled={iconState === "generating"}
+						className={cn(
+							"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+							model === "gpt-image-1"
+								? "bg-primary text-primary-foreground shadow-sm"
+								: "text-muted-foreground hover:text-foreground",
+							iconState === "generating" && "opacity-50 cursor-not-allowed",
+						)}
+					>
+						gpt-image-1
+					</button>
+					<button
+						onClick={() => setModel("gpt-image-2")}
+						disabled={iconState === "generating"}
+						className={cn(
+							"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+							model === "gpt-image-2"
+								? "bg-primary text-primary-foreground shadow-sm"
+								: "text-muted-foreground hover:text-foreground",
+							iconState === "generating" && "opacity-50 cursor-not-allowed",
+						)}
+					>
+						gpt-image-2
+					</button>
+				</div>
+			</div>
+
 			{/* Icon preview — pinned to top, centered horizontally. */}
-			<div className="flex justify-center pt-28 pb-20 px-10">
+			<div className="flex justify-center pt-14 pb-20 px-10">
 				<MacOSIcon
 					state={iconState}
 					selected={selectedVariant}

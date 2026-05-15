@@ -77,12 +77,13 @@ struct OpenAIGenerationResponse {
 
 async fn openai_generate_images(
     api_key: &str,
+    model: &str,
     prompt: &str,
     count: u32,
 ) -> Result<Vec<String>, String> {
     let client = reqwest::Client::new();
     let payload = OpenAIGenerationRequest {
-        model: "gpt-image-1".to_string(),
+        model: model.to_string(),
         prompt: prompt.to_string(),
         n: count.min(10),
         size: "1024x1024".to_string(),
@@ -118,6 +119,7 @@ async fn openai_generate_images(
 
 async fn openai_edit_images(
     api_key: &str,
+    model: &str,
     prompt: &str,
     reference_b64: &str,
     count: u32,
@@ -133,7 +135,7 @@ async fn openai_edit_images(
         .map_err(|e| format!("Failed to create multipart: {}", e))?;
 
     let form = reqwest::multipart::Form::new()
-        .text("model", "gpt-image-1")
+        .text("model", model.to_string())
         .text("prompt", prompt.to_string())
         .text("n", count.min(10).to_string())
         .text("size", "1024x1024".to_string())
@@ -282,6 +284,7 @@ fn set_unsaved_icon_state(unsaved: bool, state: State<AppState>) -> Result<(), S
 #[tauri::command]
 async fn generate_icon(
     prompt: String,
+    model: String,
     reference_image: String,
     seed: i32,
     state: State<'_, AppState>,
@@ -296,12 +299,18 @@ async fn generate_icon(
         key.clone()
     };
 
+    let model_name = if model.trim().is_empty() {
+        "gpt-image-1"
+    } else {
+        model.trim()
+    };
+
     let full_prompt = format!("{}, {}", SYSTEM_PREFIX, prompt.trim());
 
     let images = if reference_image.is_empty() {
-        openai_generate_images(&api_key, &full_prompt, 3).await?
+        openai_generate_images(&api_key, model_name, &full_prompt, 3).await?
     } else {
-        openai_edit_images(&api_key, &full_prompt, &reference_image, 3).await?
+        openai_edit_images(&api_key, model_name, &full_prompt, &reference_image, 3).await?
     };
 
     Ok(GenerateIconResponse { images })
