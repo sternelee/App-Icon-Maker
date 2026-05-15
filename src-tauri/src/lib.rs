@@ -10,11 +10,13 @@ use tauri_plugin_store::StoreExt;
 
 struct AppState {
     openai_api_key: Mutex<String>,
+    gemini_api_key: Mutex<String>,
     has_unsaved_icon: Mutex<bool>,
 }
 
 const STORE_FILE: &str = "app-icon-maker.json";
-const API_KEY_STORE_KEY: &str = "openai.api_key";
+const OPENAI_API_KEY_KEY: &str = "openai.api_key";
+const GEMINI_API_KEY_KEY: &str = "gemini.api_key";
 
 // ---------------------------------------------------------------------------
 // Icon resize constants
@@ -170,6 +172,237 @@ async fn openai_edit_images(
 }
 
 // ---------------------------------------------------------------------------
+// Gemini API interaction
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize)]
+struct GeminiContentPart {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    inline_data: Option<GeminiInlineData>,
+}
+
+#[derive(Serialize)]
+struct GeminiInlineData {
+    mime_type: String,
+    data: String,
+}
+
+#[derive(Serialize)]
+struct GeminiContent {
+    parts: Vec<GeminiContentPart>,
+}
+
+#[derive(Serialize)]
+struct GeminiRequest {
+    contents: Vec<GeminiContent>,
+}
+
+#[derive(Deserialize)]
+struct GeminiApiResponse {
+    candidates: Option<Vec<GeminiCandidate>>,
+}
+
+#[derive(Deserialize)]
+struct GeminiCandidate {
+    content: Option<GeminiContentResponse>,
+}
+
+#[derive(Deserialize)]
+struct GeminiContentResponse {
+    parts: Vec<GeminiPartResponse>,
+}
+
+#[derive(Deserialize)]
+struct GeminiPartResponse {
+    #[serde(default)]
+    text: Option<String>,
+    #[serde(default)]
+    inline_data: Option<GeminiInlineDataResponse>,
+}
+
+#[derive(Deserialize)]
+struct GeminiInlineDataResponse {
+    mime_type: String,
+    data: String,
+}
+
+/// Generate images via Google Gemini API (generateContent).
+/// Makes `count` parallel requests since some models only return one image per call.
+async fn gemini_generate_images(
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+    count: u32,
+) -> Result<Vec<String>, String> {
+    let client = reqwest::Client::new();
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent",
+        model
+    );
+
+    let mut handles = Vec::new();
+    for _ in 0..count.min(3) {
+        let payload = GeminiRequest {
+            contents: vec![GeminiContent {
+                parts: vec![GeminiContentPart {
+                    text: Some(prompt.to_string()),
+                    inline_data: None,
+                }],
+            }],
+        };
+
+        let client = client.clone();
+        let url = url.clone();
+        let api_key = api_key.to_string();
+
+        handles.push(tokio::spawn(async move {
+            let res = client
+                .post(&url)
+                .header("x-goog-api-key", &api_key)
+                .header("Content-Type", "application/json")
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| format!("Gemini network error: {}", e))?;
+
+            if !res.status().is_success() {
+                let status = res.status();
+                let body = res.text().await.unwrap_or_default();
+                return Err(format!("Gemini API error {}: {}", status, body));
+            }
+
+            let json: GeminiApiResponse = res
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse Gemini response: {}", e))?;
+
+            // Extract first image from the response candidates
+            if let Some(candidates) = json.candidates {
+                for c in candidates {
+                    if let Some(content) = c.content {
+                        for part in content.parts {
+                            if let Some(data) = part.inline_data {
+                                if data.mime_type.starts_with("image/") {
+                                    return Ok(data.data);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Err("Gemini returned no image data.".to_string())
+        }));
+    }
+
+    let mut images = Vec::new();
+    for h in handles {
+        match h.await {
+            Ok(Ok(b64)) => images.push(b64),
+            Ok(Err(e)) => return Err(e),
+            Err(e) => return Err(format!("Task failed: {}", e)),
+        }
+    }
+
+    if images.is_empty() {
+        return Err("Gemini returned no image data.".to_string());
+    }
+    Ok(images)
+}
+
+/// Edit images via Google Gemini API — reference image sent as inlineData.
+async fn gemini_edit_images(
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+    reference_b64: &str,
+    count: u32,
+) -> Result<Vec<String>, String> {
+    let client = reqwest::Client::new();
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent",
+        model
+    );
+
+    let mut handles = Vec::new();
+    for _ in 0..count.min(3) {
+        let payload = GeminiRequest {
+            contents: vec![GeminiContent {
+                parts: vec![
+                    GeminiContentPart {
+                        text: None,
+                        inline_data: Some(GeminiInlineData {
+                            mime_type: "image/png".to_string(),
+                            data: reference_b64.to_string(),
+                        }),
+                    },
+                    GeminiContentPart {
+                        text: Some(prompt.to_string()),
+                        inline_data: None,
+                    },
+                ],
+            }],
+        };
+
+        let client = client.clone();
+        let url = url.clone();
+        let api_key = api_key.to_string();
+
+        handles.push(tokio::spawn(async move {
+            let res = client
+                .post(&url)
+                .header("x-goog-api-key", &api_key)
+                .header("Content-Type", "application/json")
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| format!("Gemini network error: {}", e))?;
+
+            if !res.status().is_success() {
+                let status = res.status();
+                let body = res.text().await.unwrap_or_default();
+                return Err(format!("Gemini API error {}: {}", status, body));
+            }
+
+            let json: GeminiApiResponse = res
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse Gemini response: {}", e))?;
+
+            if let Some(candidates) = json.candidates {
+                for c in candidates {
+                    if let Some(content) = c.content {
+                        for part in content.parts {
+                            if let Some(data) = part.inline_data {
+                                if data.mime_type.starts_with("image/") {
+                                    return Ok(data.data);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Err("Gemini returned no image data.".to_string())
+        }));
+    }
+
+    let mut images = Vec::new();
+    for h in handles {
+        match h.await {
+            Ok(Ok(b64)) => images.push(b64),
+            Ok(Err(e)) => return Err(e),
+            Err(e) => return Err(format!("Task failed: {}", e)),
+        }
+    }
+
+    if images.is_empty() {
+        return Err("Gemini returned no image data.".to_string());
+    }
+    Ok(images)
+}
+
+// ---------------------------------------------------------------------------
 // Icon build helpers (.iconset → .icns via sips + iconutil)
 // ---------------------------------------------------------------------------
 
@@ -246,29 +479,63 @@ fn set_openai_api_key(
     if trimmed.is_empty() {
         return Err("API key cannot be empty.".to_string());
     }
-    // Persist to store
     if let Ok(store) = app.store(STORE_FILE) {
-        store.set(API_KEY_STORE_KEY, serde_json::Value::String(trimmed.clone()));
+        store.set(OPENAI_API_KEY_KEY, serde_json::Value::String(trimmed.clone()));
         let _ = store.save();
     }
-    // Also keep in memory
     let mut key = state.openai_api_key.lock().map_err(|e| e.to_string())?;
     *key = trimmed;
     Ok(())
 }
 
 #[tauri::command]
-fn get_openai_api_key_status(state: State<AppState>) -> Result<OpenAIApiKeyStatus, String> {
+fn get_openai_api_key_status(state: State<AppState>) -> Result<ApiKeyStatus, String> {
     let key = state.openai_api_key.lock().map_err(|e| e.to_string())?;
-    Ok(OpenAIApiKeyStatus {
-        openai_key_required: true,
-        has_openai_key: !key.is_empty(),
+    Ok(ApiKeyStatus {
+        key_required: true,
+        has_key: !key.is_empty(),
     })
 }
 
 #[tauri::command]
 fn get_stored_openai_api_key(state: State<AppState>) -> Result<StoredApiKey, String> {
     let key = state.openai_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(StoredApiKey {
+        api_key: key.clone(),
+    })
+}
+
+#[tauri::command]
+fn set_gemini_api_key(
+    api_key: String,
+    app: tauri::AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let trimmed = api_key.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("API key cannot be empty.".to_string());
+    }
+    if let Ok(store) = app.store(STORE_FILE) {
+        store.set(GEMINI_API_KEY_KEY, serde_json::Value::String(trimmed.clone()));
+        let _ = store.save();
+    }
+    let mut key = state.gemini_api_key.lock().map_err(|e| e.to_string())?;
+    *key = trimmed;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_gemini_api_key_status(state: State<AppState>) -> Result<ApiKeyStatus, String> {
+    let key = state.gemini_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(ApiKeyStatus {
+        key_required: true,
+        has_key: !key.is_empty(),
+    })
+}
+
+#[tauri::command]
+fn get_stored_gemini_api_key(state: State<AppState>) -> Result<StoredApiKey, String> {
+    let key = state.gemini_api_key.lock().map_err(|e| e.to_string())?;
     Ok(StoredApiKey {
         api_key: key.clone(),
     })
@@ -285,35 +552,58 @@ fn set_unsaved_icon_state(unsaved: bool, state: State<AppState>) -> Result<(), S
 async fn generate_icon(
     prompt: String,
     model: String,
+    provider: String,
     reference_image: String,
     seed: i32,
     state: State<'_, AppState>,
 ) -> Result<GenerateIconResponse, String> {
     let _ = seed;
 
-    let api_key = {
-        let key = state.openai_api_key.lock().map_err(|e| e.to_string())?;
-        if key.is_empty() {
-            return Err("No OpenAI API key. Add one in the settings.".to_string());
-        }
-        key.clone()
-    };
-
+    let full_prompt = format!("{}, {}", SYSTEM_PREFIX, prompt.trim());
     let model_name = if model.trim().is_empty() {
-        "gpt-image-1"
+        match provider.as_str() {
+            "gemini" => "gemini-2.5-flash-image",
+            _ => "gpt-image-1",
+        }
     } else {
         model.trim()
     };
 
-    let full_prompt = format!("{}, {}", SYSTEM_PREFIX, prompt.trim());
+    match provider.as_str() {
+        "gemini" => {
+            let api_key = {
+                let key = state.gemini_api_key.lock().map_err(|e| e.to_string())?;
+                if key.is_empty() {
+                    return Err("No Gemini API key. Add one in the settings.".to_string());
+                }
+                key.clone()
+            };
 
-    let images = if reference_image.is_empty() {
-        openai_generate_images(&api_key, model_name, &full_prompt, 3).await?
-    } else {
-        openai_edit_images(&api_key, model_name, &full_prompt, &reference_image, 3).await?
-    };
+            let images = if reference_image.is_empty() {
+                gemini_generate_images(&api_key, model_name, &full_prompt, 3).await?
+            } else {
+                gemini_edit_images(&api_key, model_name, &full_prompt, &reference_image, 3).await?
+            };
+            Ok(GenerateIconResponse { images })
+        }
+        _ => {
+            // OpenAI
+            let api_key = {
+                let key = state.openai_api_key.lock().map_err(|e| e.to_string())?;
+                if key.is_empty() {
+                    return Err("No OpenAI API key. Add one in the settings.".to_string());
+                }
+                key.clone()
+            };
 
-    Ok(GenerateIconResponse { images })
+            let images = if reference_image.is_empty() {
+                openai_generate_images(&api_key, model_name, &full_prompt, 3).await?
+            } else {
+                openai_edit_images(&api_key, model_name, &full_prompt, &reference_image, 3).await?
+            };
+            Ok(GenerateIconResponse { images })
+        }
+    }
 }
 
 #[tauri::command]
@@ -380,9 +670,9 @@ fn read_file_as_base64(path: String) -> Result<String, String> {
 // ---------------------------------------------------------------------------
 
 #[derive(Serialize)]
-struct OpenAIApiKeyStatus {
-    openai_key_required: bool,
-    has_openai_key: bool,
+struct ApiKeyStatus {
+    key_required: bool,
+    has_key: bool,
 }
 
 #[derive(Serialize)]
@@ -415,15 +705,25 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .manage(AppState {
             openai_api_key: Mutex::new(String::new()),
+            gemini_api_key: Mutex::new(String::new()),
             has_unsaved_icon: Mutex::new(false),
         })
         .setup(|app| {
-            // Load persisted API key from store on startup
             if let Ok(store) = app.store(STORE_FILE) {
-                if let Some(val) = store.get(API_KEY_STORE_KEY) {
+                // Load OpenAI API key
+                if let Some(val) = store.get(OPENAI_API_KEY_KEY) {
                     if let Some(key_str) = val.as_str() {
                         let state = app.state::<AppState>();
                         if let Ok(mut key) = state.openai_api_key.lock() {
+                            *key = key_str.to_string();
+                        };
+                    }
+                }
+                // Load Gemini API key
+                if let Some(val) = store.get(GEMINI_API_KEY_KEY) {
+                    if let Some(key_str) = val.as_str() {
+                        let state = app.state::<AppState>();
+                        if let Ok(mut key) = state.gemini_api_key.lock() {
                             *key = key_str.to_string();
                         };
                     }
@@ -432,15 +732,12 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            // Handle close request: warn about unsaved changes
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 let state = window.state::<AppState>();
                 let has_unsaved = *state.has_unsaved_icon.lock().unwrap();
                 if has_unsaved {
-                    // Prevent immediate close; frontend must call set_unsaved_icon_state(false) first
                     api.prevent_close();
                 }
-                // If save was clicked and state is clean, window closes naturally
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -451,6 +748,9 @@ pub fn run() {
             set_openai_api_key,
             get_openai_api_key_status,
             get_stored_openai_api_key,
+            set_gemini_api_key,
+            get_gemini_api_key_status,
+            get_stored_gemini_api_key,
             set_unsaved_icon_state,
             read_file_as_base64,
         ])

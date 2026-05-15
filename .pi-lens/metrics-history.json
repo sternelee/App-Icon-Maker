@@ -175,7 +175,32 @@
         }
       ],
       "trend": "stable"
+    },
+    "src/components/error-modal.tsx": {
+      "latest": {
+        "commit": "00be112",
+        "timestamp": "2026-05-15T04:10:30.654Z",
+        "mi": 32.5,
+        "cognitive": 34,
+        "nesting": 4,
+        "lines": 123,
+        "maxCyclomatic": 21,
+        "entropy": 5.04
+      },
+      "history": [
+        {
+          "commit": "00be112",
+          "timestamp": "2026-05-15T04:10:30.654Z",
+          "mi": 32.5,
+          "cognitive": 34,
+          "nesting": 4,
+          "lines": 123,
+          "maxCyclomatic": 21,
+          "entropy": 5.04
+        }
+      ],
+      "trend": "stable"
     }
   },
-  "capturedAt": "2026-05-15T03:51:24.135Z"
+  "capturedAt": "2026-05-15T04:10:35.655Z"
 }

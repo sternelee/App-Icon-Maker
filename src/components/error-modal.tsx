@@ -2,15 +2,24 @@ import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/** True when the message likely indicates a bad or unauthorized OpenAI API key. */
+/** True when the message likely indicates a bad or unauthorized API key. */
 export function generationErrorSuggestsApiKeyIssue(message: string): boolean {
 	const m = message.toLowerCase();
+	// HTTP status codes
 	if (/\b401\b/.test(m) || /\b403\b/.test(m)) return true;
+	// OpenAI specific
 	if (m.includes("invalid_api_key")) return true;
 	if (m.includes("incorrect api key")) return true;
 	if (m.includes("invalid bearer")) return true;
 	if (m.includes("unauthorized")) return true;
 	if (m.includes("authentication") && m.includes("openai")) return true;
+	// Gemini specific
+	if (m.includes("api_key_invalid")) return true;
+	if (m.includes("api_key_service_not_activated")) return true;
+	if (m.includes("permission_denied")) return true;
+	if (m.includes("not allowed to use this model")) return true;
+	if (m.includes("google api key") && m.includes("invalid")) return true;
+	// Generic
 	if (
 		m.includes("api key") &&
 		(m.includes("invalid") ||

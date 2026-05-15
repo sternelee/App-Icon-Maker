@@ -28,7 +28,12 @@ export interface IconPipeline {
 	 * gray background plate behind the icon and shrink it to ~50%.
 	 */
 	rawVariants: (string | null)[];
-	generate: (prompt: string, model: string, referenceDataUrl?: string) => void;
+	generate: (
+		prompt: string,
+		model: string,
+		provider: string,
+		referenceDataUrl?: string,
+	) => void;
 
 	cancel: () => void;
 }
@@ -123,7 +128,12 @@ export function useIconPipeline(): IconPipeline {
 	}, []);
 
 	const generate = useCallback(
-		async (prompt: string, model: string, referenceDataUrl?: string) => {
+		async (
+			prompt: string,
+			model: string,
+			provider: string,
+			referenceDataUrl?: string,
+		) => {
 			cancelledRef.current = false;
 			setVariants([null, null, null]);
 			setRawVariants([null, null, null]);
@@ -151,6 +161,7 @@ export function useIconPipeline(): IconPipeline {
 				}>("generate_icon", {
 					prompt,
 					model,
+					provider,
 					referenceImage,
 					seed: 0,
 				});
