@@ -8,11 +8,6 @@
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js"
-    },
-    {
-      "type": "file",
       "name": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js",
       "file": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js"
     },
@@ -20,6 +15,11 @@
       "type": "file",
       "name": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js",
       "file": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js"
     },
     {
       "type": "file",
@@ -35,49 +35,73 @@
       "type": "dependency",
       "name": "@tauri-apps/plugin-dialog",
       "file": "package.json",
-      "line": 16
+      "line": 17
     },
     {
       "type": "dependency",
       "name": "@tauri-apps/plugin-opener",
       "file": "package.json",
-      "line": 17
+      "line": 18
     },
     {
       "type": "dependency",
       "name": "@tauri-apps/plugin-shell",
       "file": "package.json",
-      "line": 18
+      "line": 19
     },
     {
       "type": "dependency",
       "name": "@tauri-apps/plugin-store",
       "file": "package.json",
-      "line": 19
+      "line": 20
     },
     {
       "type": "dependency",
       "name": "class-variance-authority",
       "file": "package.json",
-      "line": 20
+      "line": 21
     },
     {
       "type": "dependency",
       "name": "tailwindcss-animate",
       "file": "package.json",
-      "line": 28
+      "line": 29
     },
     {
       "type": "dependency",
       "name": "tw-animate-css",
       "file": "package.json",
-      "line": 29
+      "line": 30
     },
     {
       "type": "export",
       "name": "useTheme",
       "file": "src/components/theme-provider.tsx",
       "line": 23
+    },
+    {
+      "type": "export",
+      "name": "SelectLabel",
+      "file": "src/components/ui/select.tsx",
+      "line": 196
+    },
+    {
+      "type": "export",
+      "name": "SelectScrollDownButton",
+      "file": "src/components/ui/select.tsx",
+      "line": 197
+    },
+    {
+      "type": "export",
+      "name": "SelectScrollUpButton",
+      "file": "src/components/ui/select.tsx",
+      "line": 198
+    },
+    {
+      "type": "export",
+      "name": "SelectSeparator",
+      "file": "src/components/ui/select.tsx",
+      "line": 199
     },
     {
       "type": "export",
@@ -101,6 +125,30 @@
     },
     {
       "type": "export",
+      "name": "SelectLabel",
+      "file": "src/components/ui/select.tsx",
+      "line": 196
+    },
+    {
+      "type": "export",
+      "name": "SelectScrollDownButton",
+      "file": "src/components/ui/select.tsx",
+      "line": 197
+    },
+    {
+      "type": "export",
+      "name": "SelectScrollUpButton",
+      "file": "src/components/ui/select.tsx",
+      "line": 198
+    },
+    {
+      "type": "export",
+      "name": "SelectSeparator",
+      "file": "src/components/ui/select.tsx",
+      "line": 199
+    },
+    {
+      "type": "export",
       "name": "PipelineStatus",
       "file": "src/lib/icon-pipeline.ts",
       "line": 5
@@ -120,11 +168,6 @@
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js"
-    },
-    {
-      "type": "file",
       "name": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js",
       "file": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js"
     },
@@ -132,6 +175,11 @@
       "type": "file",
       "name": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js",
       "file": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js"
     },
     {
       "type": "file",
@@ -149,45 +197,45 @@
       "type": "dependency",
       "name": "@tauri-apps/plugin-dialog",
       "file": "package.json",
-      "line": 16
+      "line": 17
     },
     {
       "type": "dependency",
       "name": "@tauri-apps/plugin-opener",
       "file": "package.json",
-      "line": 17
+      "line": 18
     },
     {
       "type": "dependency",
       "name": "@tauri-apps/plugin-shell",
       "file": "package.json",
-      "line": 18
+      "line": 19
     },
     {
       "type": "dependency",
       "name": "@tauri-apps/plugin-store",
       "file": "package.json",
-      "line": 19
+      "line": 20
     },
     {
       "type": "dependency",
       "name": "class-variance-authority",
       "file": "package.json",
-      "line": 20
+      "line": 21
     },
     {
       "type": "dependency",
       "name": "tailwindcss-animate",
       "file": "package.json",
-      "line": 28
+      "line": 29
     },
     {
       "type": "dependency",
       "name": "tw-animate-css",
       "file": "package.json",
-      "line": 29
+      "line": 30
     }
   ],
   "unlistedDeps": [],
-  "summary": "Found 16 issues"
+  "summary": "Found 20 issues"
 }
