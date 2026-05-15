@@ -220,8 +220,6 @@ struct GeminiContentResponse {
 #[derive(Deserialize)]
 struct GeminiPartResponse {
     #[serde(default)]
-    text: Option<String>,
-    #[serde(default)]
     inline_data: Option<GeminiInlineDataResponse>,
 }
 
@@ -523,6 +521,98 @@ async fn openrouter_generate_images(
     }
     Ok(images)
 }
+
+/// Generate images via OpenRouter chat completions with a reference image.
+async fn openrouter_edit_images(
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+    reference_b64: &str,
+    count: u32,
+) -> Result<Vec<String>, String> {
+    let client = reqwest::Client::new();
+    let url = "https://openrouter.ai/api/v1/chat/completions";
+
+    let mut handles = Vec::new();
+    for _ in 0..count.min(3) {
+        // Build multi-part content: image + text
+        let content = serde_json::json!([
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": format!("data:image/png;base64,{}", reference_b64)
+                }
+            },
+            {
+                "type": "text",
+                "text": prompt
+            }
+        ]);
+
+        let payload = serde_json::json!({
+            "model": model,
+            "messages": [{
+                "role": "user",
+                "content": content
+            }],
+            "modalities": ["image", "text"]
+        });
+
+        let client = client.clone();
+        let api_key = api_key.to_string();
+        let url = url.to_string();
+
+        handles.push(tokio::spawn(async move {
+            let res = client
+                .post(&url)
+                .header("Authorization", format!("Bearer {}", api_key))
+                .header("Content-Type", "application/json")
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| format!("OpenRouter network error: {}", e))?;
+
+            if !res.status().is_success() {
+                let status = res.status();
+                let body = res.text().await.unwrap_or_default();
+                return Err(format!("OpenRouter API error {}: {}", status, body));
+            }
+
+            let json: OpenRouterResponse = res
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse OpenRouter response: {}", e))?;
+
+            if let Some(choice) = json.choices.first() {
+                if let Some(images) = &choice.message.images {
+                    if let Some(img) = images.iter().next() {
+                        let url = &img.image_url.url;
+                        if let Some(comma) = url.find(",") {
+                            return Ok(url[comma + 1..].to_string());
+                        }
+                        return Ok(url.clone());
+                    }
+                }
+            }
+            Err("OpenRouter returned no image data.".to_string())
+        }));
+    }
+
+    let mut images = Vec::new();
+    for h in handles {
+        match h.await {
+            Ok(Ok(b64)) => images.push(b64),
+            Ok(Err(e)) => return Err(e),
+            Err(e) => return Err(format!("Task failed: {}", e)),
+        }
+    }
+
+    if images.is_empty() {
+        return Err("OpenRouter returned no image data.".to_string());
+    }
+    Ok(images)
+}
+
 /// Generate images via Vercel AI Gateway (OpenAI-compatible chat completions).
 async fn vercel_generate_images(
     api_key: &str,
@@ -849,7 +939,11 @@ async fn generate_icon(
                 key.clone()
             };
 
-            let images = openrouter_generate_images(&api_key, model_name, &full_prompt, 3).await?;
+            let images = if reference_image.is_empty() {
+                openrouter_generate_images(&api_key, model_name, &full_prompt, 3).await?
+            } else {
+                openrouter_edit_images(&api_key, model_name, &full_prompt, &reference_image, 3).await?
+            };
             Ok(GenerateIconResponse { images })
         }
         "gemini" => {
