@@ -267,7 +267,7 @@ export function AppContent() {
 			{/* Top bar — model selector scrolls horizontally, save right. */}
 			<div className="flex items-center justify-between gap-2 px-4 pt-3 app-no-drag">
 				{/* Model selector — changes by provider set in settings. */}
-				<div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap border border-border bg-secondary/30 p-0.5 rounded-full scrollbar-hide">
+				<div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap border border-border bg-secondary/30 p-0.5 rounded-full scrollbar-hide min-w-0">
 					{provider === "openai" && (
 						<>
 							<button
