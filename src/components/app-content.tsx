@@ -237,7 +237,9 @@ export function AppContent() {
 						setOpenAIApiKeyManageReason(null);
 						if (p) {
 							setProvider(p);
-							setModel(p === "gemini" ? "gemini-2.5-flash-image" : "gpt-image-1");
+							setModel(
+								p === "gemini" ? "gemini-2.5-flash-image" : "gpt-image-1",
+							);
 						}
 						if (saved) setOpenAIApiKeyStartupOpen(false);
 					}}
