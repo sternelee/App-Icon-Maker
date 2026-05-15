@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
 import { ExternalLink } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 export type OpenAIApiKeyManageReason = "settings" | "authError";
 
-export type Provider = "openai" | "gemini" | "openrouter";
+export type Provider = "openai" | "gemini" | "openrouter" | "vercel";
 
 const PROVIDER_CONFIG: Record<
 	Provider,
@@ -32,6 +39,14 @@ const PROVIDER_CONFIG: Record<
 		helpUrl: "https://aistudio.google.com/app/apikey",
 		getKeyCmd: "get_stored_gemini_api_key",
 		setKeyCmd: "set_gemini_api_key",
+	},
+	vercel: {
+		label: "Vercel Gateway",
+		keyLabel: "Vercel API key",
+		placeholder: "…",
+		helpUrl: "https://vercel.com/docs/security/api-keys",
+		getKeyCmd: "get_stored_vercel_api_key",
+		setKeyCmd: "set_vercel_api_key",
 	},
 	openrouter: {
 		label: "OpenRouter",
@@ -62,7 +77,7 @@ async function persistKey(
 }
 
 /** Provider toggle for use inside modals. */
-function ProviderToggle({
+function ProviderSelect({
 	provider,
 	onChange,
 	disabled,
@@ -72,23 +87,18 @@ function ProviderToggle({
 	disabled?: boolean;
 }) {
 	return (
-		<div className="flex items-center gap-1 rounded-full border border-border bg-secondary/30 p-0.5 w-fit">
-			{(["openai", "gemini", "openrouter"] as Provider[]).map((p) => (
-				<button
-					key={p}
-					type="button"
-					onClick={() => onChange(p)}
-					disabled={disabled}
-					className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
-						provider === p
-							? "bg-primary text-primary-foreground shadow-sm"
-							: "text-muted-foreground hover:text-foreground"
-					} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-				>
-					{PROVIDER_CONFIG[p].label}
-				</button>
-			))}
-		</div>
+		<Select value={provider} onValueChange={(v) => v && onChange(v as Provider)} disabled={disabled}>
+			<SelectTrigger className="h-8 text-xs w-[150px]">
+				<SelectValue placeholder="Select provider" />
+			</SelectTrigger>
+			<SelectContent>
+				{(["openai", "gemini", "openrouter", "vercel"] as Provider[]).map((p) => (
+					<SelectItem key={p} value={p}>
+						{PROVIDER_CONFIG[p].label}
+					</SelectItem>
+				))}
+			</SelectContent>
+		</Select>
 	);
 }
 
@@ -189,7 +199,7 @@ export function OpenAIApiKeyStartupModal({
 					>
 						Add API key
 					</h2>
-					<ProviderToggle provider={provider} onChange={setProvider} />
+					<ProviderSelect provider={provider} onChange={setProvider} />
 				</div>
 
 				<ApiKeyForm
@@ -310,7 +320,7 @@ export function OpenAIApiKeyManageModal({
 					>
 						{reason === "authError" ? "Update API key" : "API key"}
 					</h2>
-					<ProviderToggle provider={provider} onChange={setProvider} />
+					<ProviderSelect provider={provider} onChange={setProvider} />
 				</div>
 
 				<ApiKeyForm

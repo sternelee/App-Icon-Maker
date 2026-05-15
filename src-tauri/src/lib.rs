@@ -12,6 +12,7 @@ struct AppState {
     openai_api_key: Mutex<String>,
     gemini_api_key: Mutex<String>,
     openrouter_api_key: Mutex<String>,
+    vercel_api_key: Mutex<String>,
     has_unsaved_icon: Mutex<bool>,
 }
 
@@ -19,6 +20,7 @@ const STORE_FILE: &str = "app-icon-maker.json";
 const OPENAI_API_KEY_KEY: &str = "openai.api_key";
 const GEMINI_API_KEY_KEY: &str = "gemini.api_key";
 const OPENROUTER_API_KEY_KEY: &str = "openrouter.api_key";
+const VERCEL_API_KEY_KEY: &str = "vercel.api_key";
 
 // ---------------------------------------------------------------------------
 // Icon resize constants
@@ -521,6 +523,93 @@ async fn openrouter_generate_images(
     }
     Ok(images)
 }
+/// Generate images via Vercel AI Gateway (OpenAI-compatible chat completions).
+async fn vercel_generate_images(
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+    count: u32,
+) -> Result<Vec<String>, String> {
+    let client = reqwest::Client::new();
+    let url = "https://api.vercel.com/v1/chat/completions";
+
+    let mut handles = Vec::new();
+    for _ in 0..count.min(3) {
+        #[derive(Serialize)]
+        struct Msg {
+            role: String,
+            content: String,
+        }
+        #[derive(Serialize)]
+        struct Body {
+            model: String,
+            messages: Vec<Msg>,
+            modalities: Vec<String>,
+        }
+
+        let payload = Body {
+            model: model.to_string(),
+            messages: vec![Msg {
+                role: "user".to_string(),
+                content: prompt.to_string(),
+            }],
+            modalities: vec!["image".to_string(), "text".to_string()],
+        };
+
+        let client = client.clone();
+        let api_key = api_key.to_string();
+
+        handles.push(tokio::spawn(async move {
+            let res = client
+                .post(url)
+                .header("Authorization", format!("Bearer {}", api_key))
+                .header("Content-Type", "application/json")
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| format!("Vercel network error: {}", e))?;
+
+            if !res.status().is_success() {
+                let status = res.status();
+                let body = res.text().await.unwrap_or_default();
+                return Err(format!("Vercel API error {}: {}", status, body));
+            }
+
+            let json: OpenRouterResponse = res
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse Vercel response: {}", e))?;
+
+            if let Some(choice) = json.choices.first() {
+                if let Some(images) = &choice.message.images {
+                    if let Some(img) = images.iter().next() {
+                        let url = &img.image_url.url;
+                        if let Some(comma) = url.find(",") {
+                            return Ok(url[comma + 1..].to_string());
+                        }
+                        return Ok(url.clone());
+                    }
+                }
+            }
+            Err("Vercel returned no image data.".to_string())
+        }));
+    }
+
+    let mut images = Vec::new();
+    for h in handles {
+        match h.await {
+            Ok(Ok(b64)) => images.push(b64),
+            Ok(Err(e)) => return Err(e),
+            Err(e) => return Err(format!("Task failed: {}", e)),
+        }
+    }
+
+    if images.is_empty() {
+        return Err("Vercel returned no image data.".to_string());
+    }
+    Ok(images)
+}
+
 
 // ---------------------------------------------------------------------------
 // Icon build helpers (.iconset → .icns via sips + iconutil)
@@ -707,7 +796,43 @@ fn get_stored_openrouter_api_key(state: State<AppState>) -> Result<StoredApiKey,
     let key = state.openrouter_api_key.lock().map_err(|e| e.to_string())?;
     Ok(StoredApiKey {
         api_key: key.clone(),
+    })}
+
+#[tauri::command]
+fn set_vercel_api_key(
+    api_key: String,
+    app: tauri::AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let trimmed = api_key.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("API key cannot be empty.".to_string());
+    }
+    if let Ok(store) = app.store(STORE_FILE) {
+        store.set(VERCEL_API_KEY_KEY, serde_json::Value::String(trimmed.clone()));
+        let _ = store.save();
+    }
+    let mut key = state.vercel_api_key.lock().map_err(|e| e.to_string())?;
+    *key = trimmed;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_vercel_api_key_status(state: State<AppState>) -> Result<ApiKeyStatus, String> {
+    let key = state.vercel_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(ApiKeyStatus {
+        key_required: true,
+        has_key: !key.is_empty(),
     })
+}
+
+#[tauri::command]
+fn get_stored_vercel_api_key(state: State<AppState>) -> Result<StoredApiKey, String> {
+    let key = state.vercel_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(StoredApiKey {
+        api_key: key.clone(),
+    })
+
 }
 
 #[tauri::command]
@@ -733,6 +858,7 @@ async fn generate_icon(
         match provider.as_str() {
             "gemini" => "gemini-2.5-flash-image",
             "openrouter" => "google/gemini-2.5-flash-image",
+            "vercel" => "openai/gpt-image-1",
             _ => "gpt-image-1",
         }
     } else {
@@ -740,6 +866,18 @@ async fn generate_icon(
     };
 
     match provider.as_str() {
+        "vercel" => {
+            let api_key = {
+                let key = state.vercel_api_key.lock().map_err(|e| e.to_string())?;
+                if key.is_empty() {
+                    return Err("No Vercel API key. Add one in the settings.".to_string());
+                }
+                key.clone()
+            };
+
+            let images = vercel_generate_images(&api_key, model_name, &full_prompt, 3).await?;
+            Ok(GenerateIconResponse { images })
+        }
         "openrouter" => {
             let api_key = {
                 let key = state.openrouter_api_key.lock().map_err(|e| e.to_string())?;
@@ -892,6 +1030,7 @@ pub fn run() {
             openai_api_key: Mutex::new(String::new()),
             gemini_api_key: Mutex::new(String::new()),
             openrouter_api_key: Mutex::new(String::new()),
+            vercel_api_key: Mutex::new(String::new()),
             has_unsaved_icon: Mutex::new(false),
         })
         .setup(|app| {
@@ -910,6 +1049,15 @@ pub fn run() {
                     if let Some(key_str) = val.as_str() {
                         let state = app.state::<AppState>();
                         if let Ok(mut key) = state.gemini_api_key.lock() {
+                            *key = key_str.to_string();
+                        };
+                    }
+                }
+                // Load Vercel API key
+                if let Some(val) = store.get(VERCEL_API_KEY_KEY) {
+                    if let Some(key_str) = val.as_str() {
+                        let state = app.state::<AppState>();
+                        if let Ok(mut key) = state.vercel_api_key.lock() {
                             *key = key_str.to_string();
                         };
                     }
@@ -949,6 +1097,9 @@ pub fn run() {
             set_openrouter_api_key,
             get_openrouter_api_key_status,
             get_stored_openrouter_api_key,
+            set_vercel_api_key,
+            get_vercel_api_key_status,
+            get_stored_vercel_api_key,
             set_unsaved_icon_state,
             read_file_as_base64,
         ])
