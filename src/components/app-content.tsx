@@ -264,17 +264,17 @@ export function AppContent() {
 				/>
 			)}
 
-			{/* Top bar — model selector wraps, save right. */}
-			<div className="flex items-start justify-between gap-2 px-4 pt-3 app-no-drag">
+			{/* Top bar — model selector scrolls horizontally, save right. */}
+			<div className="flex items-center justify-between gap-2 px-4 pt-3 app-no-drag">
 				{/* Model selector — changes by provider set in settings. */}
-				<div className="flex flex-wrap items-center gap-1 border border-border bg-secondary/30 p-0.5 rounded-lg">
+				<div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap border border-border bg-secondary/30 p-0.5 rounded-full scrollbar-hide">
 					{provider === "openai" && (
 						<>
 							<button
 								onClick={() => setModel("gpt-image-1")}
 								disabled={iconState === "generating"}
 								className={cn(
-									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									"px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all duration-200",
 									model === "gpt-image-1"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
@@ -287,7 +287,7 @@ export function AppContent() {
 								onClick={() => setModel("gpt-image-2")}
 								disabled={iconState === "generating"}
 								className={cn(
-									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									"px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all duration-200",
 									model === "gpt-image-2"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
@@ -304,7 +304,7 @@ export function AppContent() {
 								onClick={() => setModel("gemini-2.5-flash-image")}
 								disabled={iconState === "generating"}
 								className={cn(
-									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									"px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all duration-200",
 									model === "gemini-2.5-flash-image"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
@@ -317,7 +317,7 @@ export function AppContent() {
 								onClick={() => setModel("gemini-3-pro-image-preview")}
 								disabled={iconState === "generating"}
 								className={cn(
-									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									"px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all duration-200",
 									model === "gemini-3-pro-image-preview"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
@@ -330,7 +330,7 @@ export function AppContent() {
 								onClick={() => setModel("gemini-3.1-flash-image-preview")}
 								disabled={iconState === "generating"}
 								className={cn(
-									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									"px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all duration-200",
 									model === "gemini-3.1-flash-image-preview"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
@@ -347,7 +347,7 @@ export function AppContent() {
 								onClick={() => setModel("openai/gpt-5-image")}
 								disabled={iconState === "generating"}
 								className={cn(
-									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									"px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all duration-200",
 									model === "openai/gpt-5-image"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
@@ -360,7 +360,7 @@ export function AppContent() {
 								onClick={() => setModel("openai/gpt-5.4-image-2")}
 								disabled={iconState === "generating"}
 								className={cn(
-									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									"px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all duration-200",
 									model === "openai/gpt-5.4-image-2"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
@@ -373,7 +373,7 @@ export function AppContent() {
 								onClick={() => setModel("openai/gpt-5-image-mini")}
 								disabled={iconState === "generating"}
 								className={cn(
-									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									"px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all duration-200",
 									model === "openai/gpt-5-image-mini"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
@@ -386,7 +386,7 @@ export function AppContent() {
 								onClick={() => setModel("google/gemini-2.5-flash-image")}
 								disabled={iconState === "generating"}
 								className={cn(
-									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									"px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all duration-200",
 									model === "google/gemini-2.5-flash-image"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
@@ -399,7 +399,7 @@ export function AppContent() {
 								onClick={() => setModel("google/gemini-3-pro-image-preview")}
 								disabled={iconState === "generating"}
 								className={cn(
-									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									"px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all duration-200",
 									model === "google/gemini-3-pro-image-preview"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
@@ -414,7 +414,7 @@ export function AppContent() {
 								}
 								disabled={iconState === "generating"}
 								className={cn(
-									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									"px-3 py-1 rounded-full text-xs font-medium shrink-0 transition-all duration-200",
 									model === "google/gemini-3.1-flash-image-preview"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
