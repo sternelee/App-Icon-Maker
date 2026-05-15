@@ -295,7 +295,7 @@ export function AppContent() {
 									iconState === "generating" && "opacity-50 cursor-not-allowed",
 								)}
 							>
-								gemini-2.5-flash
+								Nano Banana
 							</button>
 							<button
 								onClick={() => setModel("gemini-3-pro-image-preview")}
@@ -308,7 +308,7 @@ export function AppContent() {
 									iconState === "generating" && "opacity-50 cursor-not-allowed",
 								)}
 							>
-								gemini-3-pro
+								Nano Banana Pro
 							</button>
 							<button
 								onClick={() => setModel("gemini-3.1-flash-image-preview")}
@@ -321,7 +321,7 @@ export function AppContent() {
 									iconState === "generating" && "opacity-50 cursor-not-allowed",
 								)}
 							>
-								gemini-3.1-flash
+								Nano Banana 2
 							</button>
 						</>
 					)}

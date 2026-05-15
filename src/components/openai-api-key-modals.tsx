@@ -130,7 +130,11 @@ function ApiKeyForm({
 
 // ── Startup modal ──────────────────────────────────────────────────────────
 
-export function OpenAIApiKeyStartupModal({ onSaved }: { onSaved: (provider: Provider) => void }) {
+export function OpenAIApiKeyStartupModal({
+	onSaved,
+}: {
+	onSaved: (provider: Provider) => void;
+}) {
 	const [provider, setProvider] = useState<Provider>("openai");
 	const [value, setValue] = useState("");
 	const [error, setError] = useState<string | null>(null);
