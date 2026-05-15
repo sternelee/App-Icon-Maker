@@ -258,40 +258,41 @@ export function AppContent() {
 				</button>
 			</div>
 
-			{/* Model selector — centered between preview and input. */}
-			<div className="flex justify-center app-no-drag">
-				<div className="flex items-center gap-1 rounded-full border border-border bg-secondary/30 p-0.5">
-					<button
-						onClick={() => setModel("gpt-image-1")}
-						disabled={iconState === "generating"}
-						className={cn(
-							"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
-							model === "gpt-image-1"
-								? "bg-primary text-primary-foreground shadow-sm"
-								: "text-muted-foreground hover:text-foreground",
-							iconState === "generating" && "opacity-50 cursor-not-allowed",
-						)}
-					>
-						gpt-image-1
-					</button>
-					<button
-						onClick={() => setModel("gpt-image-2")}
-						disabled={iconState === "generating"}
-						className={cn(
-							"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
-							model === "gpt-image-2"
-								? "bg-primary text-primary-foreground shadow-sm"
-								: "text-muted-foreground hover:text-foreground",
-							iconState === "generating" && "opacity-50 cursor-not-allowed",
-						)}
-					>
-						gpt-image-2
-					</button>
+			{/* Middle area — vertically centered. */}
+			<div className="flex-1 flex flex-col items-center justify-center gap-6 px-10">
+				{/* Model selector — above icon preview. */}
+				<div className="flex justify-center app-no-drag">
+					<div className="flex items-center gap-1 rounded-full border border-border bg-secondary/30 p-0.5">
+						<button
+							onClick={() => setModel("gpt-image-1")}
+							disabled={iconState === "generating"}
+							className={cn(
+								"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+								model === "gpt-image-1"
+									? "bg-primary text-primary-foreground shadow-sm"
+									: "text-muted-foreground hover:text-foreground",
+								iconState === "generating" && "opacity-50 cursor-not-allowed",
+							)}
+						>
+							gpt-image-1
+						</button>
+						<button
+							onClick={() => setModel("gpt-image-2")}
+							disabled={iconState === "generating"}
+							className={cn(
+								"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+								model === "gpt-image-2"
+									? "bg-primary text-primary-foreground shadow-sm"
+									: "text-muted-foreground hover:text-foreground",
+								iconState === "generating" && "opacity-50 cursor-not-allowed",
+							)}
+						>
+							gpt-image-2
+						</button>
+					</div>
 				</div>
-			</div>
 
-			{/* Icon preview — pinned to top, centered horizontally. */}
-			<div className="flex justify-center pb-20 px-10">
+				{/* Icon preview — centered. */}
 				<MacOSIcon
 					state={iconState}
 					selected={selectedVariant}
@@ -301,8 +302,8 @@ export function AppContent() {
 				/>
 			</div>
 
-			{/* Bottom area — input, pushed to the bottom. */}
-			<div className="flex flex-1 flex-col items-center justify-end gap-6 px-4 pb-4 app-no-drag">
+			{/* Bottom area — input at the bottom. */}
+			<div className="flex flex-col items-center px-4 pb-4 app-no-drag">
 				<PromptInput
 					value={prompt}
 					onChange={setPrompt}

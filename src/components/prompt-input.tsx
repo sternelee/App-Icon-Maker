@@ -1,4 +1,11 @@
-import { useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent } from "react";
+import {
+	useEffect,
+	useRef,
+	useState,
+	type ChangeEvent,
+	type DragEvent,
+	type KeyboardEvent,
+} from "react";
 import {
 	ArrowUp,
 	ChevronRight,
@@ -97,6 +104,55 @@ export function PromptInput({
 		const newUrls = imageFiles.map((file) => URL.createObjectURL(file));
 		onAttachmentsChange([...attachments, ...newUrls]);
 	};
+
+	// Tauri drag-drop: listen for file drops from OS
+	useEffect(() => {
+		let unlisten: (() => void) | undefined;
+
+		(async () => {
+			try {
+				const { getCurrentWindow } = await import(
+					"@tauri-apps/api/window"
+				);
+				const { convertFileSrc } = await import(
+					"@tauri-apps/api/core"
+				);
+				unlisten = await getCurrentWindow().onDragDropEvent(
+					(event: any) => {
+						const { type, paths } = event.payload;
+						if (type === "over" || type === "enter") {
+							setDragOver(true);
+						} else if (type === "leave") {
+							setDragOver(false);
+						} else if (type === "drop") {
+							setDragOver(false);
+							const imagePaths: string[] = (
+								paths ?? []
+							).filter((p: string) =>
+								/.(png|jpg|jpeg|gif|webp|bmp|svg)$/i.test(
+									p,
+								),
+							);
+							if (imagePaths.length === 0) return;
+							const urls = imagePaths.map((p: string) =>
+								convertFileSrc(p),
+							);
+							onAttachmentsChange([
+								...attachments,
+								...urls,
+							]);
+						}
+					},
+				);
+			} catch {
+				// Not running inside Tauri — HTML5 drop handler is used instead
+			}
+		})();
+
+		return () => {
+			unlisten?.();
+		};
+	}, [onAttachmentsChange, attachments]);
 
 	return (
 		<div
