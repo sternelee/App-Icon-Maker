@@ -156,13 +156,25 @@
 		-webkit-app-region: no-drag;
 	}
 
-	.scrollbar-hide {
-		-ms-overflow-style: none;
-		scrollbar-width: none;
+	.thin-scrollbar {
+		scrollbar-width: thin;
 	}
 
-	.scrollbar-hide::-webkit-scrollbar {
-		display: none;
+	.thin-scrollbar::-webkit-scrollbar {
+		height: 4px;
+	}
+
+	.thin-scrollbar::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.thin-scrollbar::-webkit-scrollbar-thumb {
+		background: rgba(255,255,255,0.15);
+		border-radius: 2px;
+	}
+
+	.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+		background: rgba(255,255,255,0.25);
 	}
 
 	@keyframes thinking-dot {
