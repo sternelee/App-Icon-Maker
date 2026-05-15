@@ -531,79 +531,39 @@ async fn vercel_generate_images(
     count: u32,
 ) -> Result<Vec<String>, String> {
     let client = reqwest::Client::new();
+    // Vercel AI Gateway uses OpenAI-compatible /v1/images/generations
     let url = "https://ai-gateway.vercel.sh/v1/images/generations";
 
-    let mut handles = Vec::new();
-    for _ in 0..count.min(3) {
-        #[derive(Serialize)]
-        struct Msg {
-            role: String,
-            content: String,
-        }
-        #[derive(Serialize)]
-        struct Body {
-            model: String,
-            messages: Vec<Msg>,
-            modalities: Vec<String>,
-        }
+    // Use OpenAI image generation format — Vercel routes to the appropriate provider
+    let payload = OpenAIGenerationRequest {
+        model: model.to_string(),
+        prompt: prompt.to_string(),
+        n: count.min(10),
+        size: "1024x1024".to_string(),
+        quality: "high".to_string(),
+    };
 
-        let payload = Body {
-            model: model.to_string(),
-            messages: vec![Msg {
-                role: "user".to_string(),
-                content: prompt.to_string(),
-            }],
-            modalities: vec!["image".to_string(), "text".to_string()],
-        };
+    let res = client
+        .post(url)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("Vercel network error: {}", e))?;
 
-        let client = client.clone();
-        let api_key = api_key.to_string();
-
-        handles.push(tokio::spawn(async move {
-            let res = client
-                .post(url)
-                .header("Authorization", format!("Bearer {}", api_key))
-                .header("Content-Type", "application/json")
-                .json(&payload)
-                .send()
-                .await
-                .map_err(|e| format!("Vercel network error: {}", e))?;
-
-            if !res.status().is_success() {
-                let status = res.status();
-                let body = res.text().await.unwrap_or_default();
-                return Err(format!("Vercel API error {}: {}", status, body));
-            }
-
-            let json: OpenRouterResponse = res
-                .json()
-                .await
-                .map_err(|e| format!("Failed to parse Vercel response: {}", e))?;
-
-            if let Some(choice) = json.choices.first() {
-                if let Some(images) = &choice.message.images {
-                    if let Some(img) = images.iter().next() {
-                        let url = &img.image_url.url;
-                        if let Some(comma) = url.find(",") {
-                            return Ok(url[comma + 1..].to_string());
-                        }
-                        return Ok(url.clone());
-                    }
-                }
-            }
-            Err("Vercel returned no image data.".to_string())
-        }));
+    if !res.status().is_success() {
+        let status = res.status();
+        let body = res.text().await.unwrap_or_default();
+        return Err(format!("Vercel API error {}: {}", status, body));
     }
 
-    let mut images = Vec::new();
-    for h in handles {
-        match h.await {
-            Ok(Ok(b64)) => images.push(b64),
-            Ok(Err(e)) => return Err(e),
-            Err(e) => return Err(format!("Task failed: {}", e)),
-        }
-    }
+    let json: OpenAIGenerationResponse = res
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Vercel response: {}", e))?;
 
+    let images: Vec<String> = json.data.into_iter().map(|d| d.b64_json).collect();
     if images.is_empty() {
         return Err("Vercel returned no image data.".to_string());
     }

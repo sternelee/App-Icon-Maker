@@ -1,4 +1,4 @@
 {
-  "signature": "src/components/openai-api-key-modals.tsx::Unresolved from this turn — src/components/openai-api-key-modals.tsx:\n🔴 STOP — 1 issue(s) must be fixed:\n  L323: Cannot find name 'ProviderToggle'.",
+  "signature": "src/components/ui/select.tsx::ℹ️ Advisory — no action required this turn:\n⚠️ Newly unused exports in modified files — check if callers need updating (Knip):\n  src/components/ui/select.tsx:196 — SelectLabel\n  src/components/ui/select.tsx:197 — SelectScrollDownButton\n  src/components/ui/select.tsx:198 — SelectScrollUpButton\n  src/components/ui/select.tsx:199 — SelectSeparator\n",
   "sessionId": "lens-mp6mo62b-016ae6ca"
 }
