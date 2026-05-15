@@ -223,6 +223,7 @@ export function AppContent() {
 				<OpenAIApiKeyStartupModal
 					onSaved={(p: Provider) => {
 						setProvider(p);
+						setModel(p === "gemini" ? "gemini-2.5-flash-image" : "gpt-image-1");
 						setOpenAIApiKeyStartupOpen(false);
 					}}
 				/>
@@ -234,7 +235,10 @@ export function AppContent() {
 					defaultProvider={provider}
 					onClose={(saved: boolean, p?: Provider) => {
 						setOpenAIApiKeyManageReason(null);
-						if (p) setProvider(p);
+						if (p) {
+							setProvider(p);
+							setModel(p === "gemini" ? "gemini-2.5-flash-image" : "gpt-image-1");
+						}
 						if (saved) setOpenAIApiKeyStartupOpen(false);
 					}}
 				/>

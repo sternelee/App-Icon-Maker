@@ -233,7 +233,9 @@ export function OpenAIApiKeyManageModal({
 	defaultProvider?: Provider;
 	onClose: (saved: boolean, provider?: Provider) => void;
 }) {
-	const [provider, setProvider] = useState<Provider>(defaultProvider ?? "openai");
+	const [provider, setProvider] = useState<Provider>(
+		defaultProvider ?? "openai",
+	);
 	const [value, setValue] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
