@@ -1,4 +1,4 @@
 {
-  "signature": "src/components/prompt-input.tsx::Unresolved from this turn — src/components/prompt-input.tsx:\n🔴 STOP — 3 issue(s) must be fixed:\n  L122: Property 'paths' does not exist on type 'DragDropEvent'.\n    💡 Fix: LSP quick fixes: Infer parameter types from usage\n  L137: Argument of type '(prev: any) => any[]' is not assignable to parameter of type 'string[]'.\n    💡 Fix: LSP quick fixes: Infer parameter types from usage\n  L137: Parameter 'prev' implicitly has an 'any' type.\n    💡 Fix: LSP quick fixes: Infer parameter types from usage",
+  "signature": "src/components/openai-api-key-modals.tsx::Unresolved from this turn — src/components/openai-api-key-modals.tsx:\n🔴 STOP — 1 issue(s) must be fixed:\n  L154: Expected 1 arguments, but got 0.",
   "sessionId": "lens-mp6bw0mr-32696ea6"
 }

@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 export type OpenAIApiKeyManageReason = "settings" | "authError";
 
-type Provider = "openai" | "gemini";
+export type Provider = "openai" | "gemini";
 
 const PROVIDER_CONFIG: Record<
 	Provider,
@@ -39,7 +39,10 @@ function openExternalUrl(url: string) {
 	invoke("open_external_url", { url }).catch(() => {});
 }
 
-async function persistKey(provider: Provider, key: string): Promise<string | null> {
+async function persistKey(
+	provider: Provider,
+	key: string,
+): Promise<string | null> {
 	const trimmed = key.trim();
 	if (!trimmed) return "Enter your API key.";
 	try {
@@ -127,7 +130,7 @@ function ApiKeyForm({
 
 // ── Startup modal ──────────────────────────────────────────────────────────
 
-export function OpenAIApiKeyStartupModal({ onSaved }: { onSaved: () => void }) {
+export function OpenAIApiKeyStartupModal({ onSaved }: { onSaved: (provider: Provider) => void }) {
 	const [provider, setProvider] = useState<Provider>("openai");
 	const [value, setValue] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -144,9 +147,11 @@ export function OpenAIApiKeyStartupModal({ onSaved }: { onSaved: () => void }) {
 		const errMsg = await persistKey(provider, key);
 		setBusy(false);
 		if (errMsg) {
-			setError(errMsg === "API key cannot be empty." ? "Enter your API key." : errMsg);
+			setError(
+				errMsg === "API key cannot be empty." ? "Enter your API key." : errMsg,
+			);
 		} else {
-			onSaved();
+			onSaved(provider);
 		}
 	}, [value, provider, onSaved]);
 
@@ -166,7 +171,10 @@ export function OpenAIApiKeyStartupModal({ onSaved }: { onSaved: () => void }) {
 		>
 			<div className="relative w-[420px] max-w-[calc(100vw-32px)] rounded-xl border border-border bg-background shadow-2xl">
 				<div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-border">
-					<h2 id="api-key-startup-title" className="font-medium text-foreground text-sm">
+					<h2
+						id="api-key-startup-title"
+						className="font-medium text-foreground text-sm"
+					>
 						Add API key
 					</h2>
 					<ProviderToggle provider={provider} onChange={setProvider} />
@@ -217,7 +225,7 @@ export function OpenAIApiKeyManageModal({
 	onClose,
 }: {
 	reason: OpenAIApiKeyManageReason;
-	onClose: (saved: boolean) => void;
+	onClose: (saved: boolean, provider?: Provider) => void;
 }) {
 	const [provider, setProvider] = useState<Provider>("openai");
 	const [value, setValue] = useState("");
@@ -242,9 +250,11 @@ export function OpenAIApiKeyManageModal({
 		const errMsg = await persistKey(provider, key);
 		setBusy(false);
 		if (errMsg) {
-			setError(errMsg === "API key cannot be empty." ? "Enter your API key." : errMsg);
+			setError(
+				errMsg === "API key cannot be empty." ? "Enter your API key." : errMsg,
+			);
 		} else {
-			onClose(true);
+			onClose(true, provider);
 		}
 	}, [value, provider, onClose]);
 
@@ -258,14 +268,14 @@ export function OpenAIApiKeyManageModal({
 	const description =
 		reason === "authError" ? (
 			<>
-				{PROVIDER_CONFIG[provider].label} rejected the last request (often an invalid,
-				expired, or mistyped key). Enter a valid key below; it replaces the one saved in
-				this app&apos;s preferences.
+				{PROVIDER_CONFIG[provider].label} rejected the last request (often an
+				invalid, expired, or mistyped key). Enter a valid key below; it replaces
+				the one saved in this app&apos;s preferences.
 			</>
 		) : (
 			<>
-				Here&apos;s your {PROVIDER_CONFIG[provider].keyLabel}. Edit it and save to update
-				it.
+				Here&apos;s your {PROVIDER_CONFIG[provider].keyLabel}. Edit it and save
+				to update it.
 			</>
 		);
 
@@ -278,7 +288,10 @@ export function OpenAIApiKeyManageModal({
 		>
 			<div className="relative w-[420px] max-w-[calc(100vw-32px)] rounded-xl border border-border bg-background shadow-2xl">
 				<div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-border">
-					<h2 id="api-key-manage-title" className="font-medium text-foreground text-sm">
+					<h2
+						id="api-key-manage-title"
+						className="font-medium text-foreground text-sm"
+					>
 						{reason === "authError" ? "Update API key" : "API key"}
 					</h2>
 					<ProviderToggle provider={provider} onChange={setProvider} />
@@ -308,7 +321,7 @@ export function OpenAIApiKeyManageModal({
 						<button
 							type="button"
 							disabled={busy}
-							onClick={() => onClose(false)}
+							onClick={() => onClose(false, provider)}
 							className="h-8 px-4 rounded-lg text-xs font-medium bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
 						>
 							Cancel

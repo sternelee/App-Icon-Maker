@@ -6,6 +6,7 @@ import {
 	OpenAIApiKeyManageModal,
 	OpenAIApiKeyStartupModal,
 	type OpenAIApiKeyManageReason,
+	type Provider,
 } from "@/components/openai-api-key-modals";
 import { PromptInput, type PrimaryAction } from "@/components/prompt-input";
 import {
@@ -220,15 +221,19 @@ export function AppContent() {
 
 			{openAIApiKeyStartupOpen && (
 				<OpenAIApiKeyStartupModal
-					onSaved={() => setOpenAIApiKeyStartupOpen(false)}
+					onSaved={(p: Provider) => {
+						setProvider(p);
+						setOpenAIApiKeyStartupOpen(false);
+					}}
 				/>
 			)}
 			{openAIApiKeyManageReason !== null && (
 				<OpenAIApiKeyManageModal
 					key={openAIApiKeyManageReason}
 					reason={openAIApiKeyManageReason}
-					onClose={(saved) => {
+					onClose={(saved: boolean, p?: Provider) => {
 						setOpenAIApiKeyManageReason(null);
+						if (p) setProvider(p);
 						if (saved) setOpenAIApiKeyStartupOpen(false);
 					}}
 				/>
@@ -245,43 +250,7 @@ export function AppContent() {
 
 			{/* Top bar — model selector left, save right. */}
 			<div className="flex items-center justify-between px-4 pt-3 app-no-drag">
-				{/* Provider toggle. */}
-				<div className="flex items-center gap-1 rounded-full border border-border bg-secondary/30 p-0.5 mr-2">
-					<button
-						onClick={() => {
-							setProvider("openai");
-							setModel("gpt-image-1");
-						}}
-						disabled={iconState === "generating"}
-						className={cn(
-							"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
-							provider === "openai"
-								? "bg-primary text-primary-foreground shadow-sm"
-								: "text-muted-foreground hover:text-foreground",
-							iconState === "generating" && "opacity-50 cursor-not-allowed",
-						)}
-					>
-						OpenAI
-					</button>
-					<button
-						onClick={() => {
-							setProvider("gemini");
-							setModel("gemini-2.5-flash-image");
-						}}
-						disabled={iconState === "generating"}
-						className={cn(
-							"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
-							provider === "gemini"
-								? "bg-primary text-primary-foreground shadow-sm"
-								: "text-muted-foreground hover:text-foreground",
-							iconState === "generating" && "opacity-50 cursor-not-allowed",
-						)}
-					>
-						Gemini
-					</button>
-				</div>
-
-				{/* Model selector — changes by provider. */}
+				{/* Model selector — changes by provider set in settings. */}
 				<div className="flex items-center gap-1 rounded-full border border-border bg-secondary/30 p-0.5">
 					{provider === "openai" && (
 						<>
@@ -293,8 +262,7 @@ export function AppContent() {
 									model === "gpt-image-1"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
-									iconState === "generating" &&
-										"opacity-50 cursor-not-allowed",
+									iconState === "generating" && "opacity-50 cursor-not-allowed",
 								)}
 							>
 								gpt-image-1
@@ -307,8 +275,7 @@ export function AppContent() {
 									model === "gpt-image-2"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
-									iconState === "generating" &&
-										"opacity-50 cursor-not-allowed",
+									iconState === "generating" && "opacity-50 cursor-not-allowed",
 								)}
 							>
 								gpt-image-2
@@ -318,53 +285,40 @@ export function AppContent() {
 					{provider === "gemini" && (
 						<>
 							<button
-								onClick={() =>
-									setModel("gemini-2.5-flash-image")
-								}
+								onClick={() => setModel("gemini-2.5-flash-image")}
 								disabled={iconState === "generating"}
 								className={cn(
 									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
 									model === "gemini-2.5-flash-image"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
-									iconState === "generating" &&
-										"opacity-50 cursor-not-allowed",
+									iconState === "generating" && "opacity-50 cursor-not-allowed",
 								)}
 							>
 								gemini-2.5-flash
 							</button>
 							<button
-								onClick={() =>
-									setModel("gemini-3-pro-image-preview")
-								}
+								onClick={() => setModel("gemini-3-pro-image-preview")}
 								disabled={iconState === "generating"}
 								className={cn(
 									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
-									model ===
-										"gemini-3-pro-image-preview"
+									model === "gemini-3-pro-image-preview"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
-									iconState === "generating" &&
-										"opacity-50 cursor-not-allowed",
+									iconState === "generating" && "opacity-50 cursor-not-allowed",
 								)}
 							>
 								gemini-3-pro
 							</button>
 							<button
-								onClick={() =>
-									setModel(
-										"gemini-3.1-flash-image-preview",
-									)
-								}
+								onClick={() => setModel("gemini-3.1-flash-image-preview")}
 								disabled={iconState === "generating"}
 								className={cn(
 									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
-									model ===
-										"gemini-3.1-flash-image-preview"
+									model === "gemini-3.1-flash-image-preview"
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
-									iconState === "generating" &&
-										"opacity-50 cursor-not-allowed",
+									iconState === "generating" && "opacity-50 cursor-not-allowed",
 								)}
 							>
 								gemini-3.1-flash
