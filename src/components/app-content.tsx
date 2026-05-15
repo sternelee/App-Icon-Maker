@@ -262,7 +262,7 @@ export function AppContent() {
 			</div>
 
 			{/* Model selector — centered between preview and input. */}
-			<div className="flex justify-center">
+			<div className="flex justify-center pt-14 non-draggable">
 				<div className="flex items-center gap-1 rounded-full border border-border bg-secondary/30 p-0.5">
 					<button
 						onClick={() => setModel("gpt-image-1")}
@@ -294,7 +294,7 @@ export function AppContent() {
 			</div>
 
 			{/* Icon preview — pinned to top, centered horizontally. */}
-			<div className="flex justify-center pt-14 pb-20 px-10">
+			<div className="flex justify-center pb-20 px-10">
 				<MacOSIcon
 					state={iconState}
 					selected={selectedVariant}

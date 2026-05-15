@@ -8,13 +8,13 @@
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js"
+      "name": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js"
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js"
+      "name": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js"
     },
     {
       "type": "file",
@@ -23,13 +23,13 @@
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js"
+      "name": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js"
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js"
+      "name": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js"
     },
     {
       "type": "dependency",
@@ -120,13 +120,13 @@
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js"
+      "name": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js"
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js"
+      "name": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js"
     },
     {
       "type": "file",
@@ -135,13 +135,13 @@
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js"
+      "name": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js"
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js"
+      "name": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js"
     }
   ],
   "unusedDeps": [
