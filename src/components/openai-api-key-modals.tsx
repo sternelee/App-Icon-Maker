@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 export type OpenAIApiKeyManageReason = "settings" | "authError";
 
-export type Provider = "openai" | "gemini";
+export type Provider = "openai" | "gemini" | "openrouter";
 
 const PROVIDER_CONFIG: Record<
   Provider,
@@ -32,6 +32,14 @@ const PROVIDER_CONFIG: Record<
     helpUrl: "https://aistudio.google.com/app/apikey",
     getKeyCmd: "get_stored_gemini_api_key",
     setKeyCmd: "set_gemini_api_key",
+  },
+  openrouter: {
+    label: "OpenRouter",
+    keyLabel: "OpenRouter API key",
+    placeholder: "sk-or-v1-…",
+    helpUrl: "https://openrouter.ai/keys",
+    getKeyCmd: "get_stored_openrouter_api_key",
+    setKeyCmd: "set_openrouter_api_key",
   },
 };
 
@@ -65,7 +73,7 @@ function ProviderToggle({
 }) {
   return (
     <div className="flex items-center gap-1 rounded-full border border-border bg-secondary/30 p-0.5 w-fit">
-      {(["openai", "gemini"] as Provider[]).map((p) => (
+      {(["openai", "gemini", "openrouter"] as Provider[]).map((p) => (
         <button
           key={p}
           type="button"

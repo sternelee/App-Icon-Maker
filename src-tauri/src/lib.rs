@@ -11,12 +11,14 @@ use tauri_plugin_store::StoreExt;
 struct AppState {
     openai_api_key: Mutex<String>,
     gemini_api_key: Mutex<String>,
+    openrouter_api_key: Mutex<String>,
     has_unsaved_icon: Mutex<bool>,
 }
 
 const STORE_FILE: &str = "app-icon-maker.json";
 const OPENAI_API_KEY_KEY: &str = "openai.api_key";
 const GEMINI_API_KEY_KEY: &str = "gemini.api_key";
+const OPENROUTER_API_KEY_KEY: &str = "openrouter.api_key";
 
 // ---------------------------------------------------------------------------
 // Icon resize constants
@@ -126,10 +128,9 @@ async fn openai_edit_images(
     reference_b64: &str,
     count: u32,
 ) -> Result<Vec<String>, String> {
-    let image_bytes =
-        base64::engine::general_purpose::STANDARD
-            .decode(reference_b64)
-            .map_err(|e| format!("Invalid base64 reference image: {}", e))?;
+    let image_bytes = base64::engine::general_purpose::STANDARD
+        .decode(reference_b64)
+        .map_err(|e| format!("Invalid base64 reference image: {}", e))?;
 
     let part = reqwest::multipart::Part::bytes(image_bytes)
         .file_name("reference.png")
@@ -403,6 +404,125 @@ async fn gemini_edit_images(
 }
 
 // ---------------------------------------------------------------------------
+// OpenRouter API interaction (chat completions with image generation)
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+struct OpenRouterChoice {
+    message: OpenRouterMessage,
+}
+
+#[derive(Deserialize)]
+struct OpenRouterMessage {
+    #[serde(default)]
+    images: Option<Vec<OpenRouterImage>>,
+}
+
+#[derive(Deserialize)]
+struct OpenRouterImage {
+    image_url: OpenRouterImageUrl,
+}
+
+#[derive(Deserialize)]
+struct OpenRouterImageUrl {
+    url: String,
+}
+
+#[derive(Deserialize)]
+struct OpenRouterResponse {
+    choices: Vec<OpenRouterChoice>,
+}
+
+/// Generate images via OpenRouter chat completions API.
+/// Makes `count` parallel requests.
+async fn openrouter_generate_images(
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+    count: u32,
+) -> Result<Vec<String>, String> {
+    let client = reqwest::Client::new();
+    let url = "https://openrouter.ai/api/v1/chat/completions";
+
+    let mut handles = Vec::new();
+    for _ in 0..count.min(3) {
+        #[derive(Serialize)]
+        struct Msg {
+            role: String,
+            content: String,
+        }
+        #[derive(Serialize)]
+        struct Body {
+            model: String,
+            messages: Vec<Msg>,
+            modalities: Vec<String>,
+        }
+
+        let payload = Body {
+            model: model.to_string(),
+            messages: vec![Msg {
+                role: "user".to_string(),
+                content: prompt.to_string(),
+            }],
+            modalities: vec!["image".to_string()],
+        };
+
+        let client = client.clone();
+        let api_key = api_key.to_string();
+
+        handles.push(tokio::spawn(async move {
+            let res = client
+                .post(url)
+                .header("Authorization", format!("Bearer {}", api_key))
+                .header("Content-Type", "application/json")
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| format!("OpenRouter network error: {}", e))?;
+
+            if !res.status().is_success() {
+                let status = res.status();
+                let body = res.text().await.unwrap_or_default();
+                return Err(format!("OpenRouter API error {}: {}", status, body));
+            }
+
+            let json: OpenRouterResponse = res
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse OpenRouter response: {}", e))?;
+
+            if let Some(choice) = json.choices.first() {
+                if let Some(images) = &choice.message.images {
+                    if let Some(img) = images.iter().next() {
+                        let url = &img.image_url.url;
+                        // Strip data URL prefix if present
+                        if let Some(comma) = url.find(",") {
+                            return Ok(url[comma + 1..].to_string());
+                        }
+                        return Ok(url.clone());
+                    }
+                }
+            }
+            Err("OpenRouter returned no image data.".to_string())
+        }));
+    }
+
+    let mut images = Vec::new();
+    for h in handles {
+        match h.await {
+            Ok(Ok(b64)) => images.push(b64),
+            Ok(Err(e)) => return Err(e),
+            Err(e) => return Err(format!("Task failed: {}", e)),
+        }
+    }
+
+    if images.is_empty() {
+        return Err("OpenRouter returned no image data.".to_string());
+    }
+    Ok(images)
+}
+
+// ---------------------------------------------------------------------------
 // Icon build helpers (.iconset → .icns via sips + iconutil)
 // ---------------------------------------------------------------------------
 
@@ -480,7 +600,10 @@ fn set_openai_api_key(
         return Err("API key cannot be empty.".to_string());
     }
     if let Ok(store) = app.store(STORE_FILE) {
-        store.set(OPENAI_API_KEY_KEY, serde_json::Value::String(trimmed.clone()));
+        store.set(
+            OPENAI_API_KEY_KEY,
+            serde_json::Value::String(trimmed.clone()),
+        );
         let _ = store.save();
     }
     let mut key = state.openai_api_key.lock().map_err(|e| e.to_string())?;
@@ -516,7 +639,10 @@ fn set_gemini_api_key(
         return Err("API key cannot be empty.".to_string());
     }
     if let Ok(store) = app.store(STORE_FILE) {
-        store.set(GEMINI_API_KEY_KEY, serde_json::Value::String(trimmed.clone()));
+        store.set(
+            GEMINI_API_KEY_KEY,
+            serde_json::Value::String(trimmed.clone()),
+        );
         let _ = store.save();
     }
     let mut key = state.gemini_api_key.lock().map_err(|e| e.to_string())?;
@@ -536,6 +662,49 @@ fn get_gemini_api_key_status(state: State<AppState>) -> Result<ApiKeyStatus, Str
 #[tauri::command]
 fn get_stored_gemini_api_key(state: State<AppState>) -> Result<StoredApiKey, String> {
     let key = state.gemini_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(StoredApiKey {
+        api_key: key.clone(),
+    })
+}
+
+// ---------------------------------------------------------------------------
+// OpenRouter API key management
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+fn set_openrouter_api_key(
+    api_key: String,
+    app: tauri::AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let trimmed = api_key.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("API key cannot be empty.".to_string());
+    }
+    if let Ok(store) = app.store(STORE_FILE) {
+        store.set(
+            OPENROUTER_API_KEY_KEY,
+            serde_json::Value::String(trimmed.clone()),
+        );
+        let _ = store.save();
+    }
+    let mut key = state.openrouter_api_key.lock().map_err(|e| e.to_string())?;
+    *key = trimmed;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_openrouter_api_key_status(state: State<AppState>) -> Result<ApiKeyStatus, String> {
+    let key = state.openrouter_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(ApiKeyStatus {
+        key_required: true,
+        has_key: !key.is_empty(),
+    })
+}
+
+#[tauri::command]
+fn get_stored_openrouter_api_key(state: State<AppState>) -> Result<StoredApiKey, String> {
+    let key = state.openrouter_api_key.lock().map_err(|e| e.to_string())?;
     Ok(StoredApiKey {
         api_key: key.clone(),
     })
@@ -563,6 +732,7 @@ async fn generate_icon(
     let model_name = if model.trim().is_empty() {
         match provider.as_str() {
             "gemini" => "gemini-2.5-flash-image",
+            "openrouter" => "google/gemini-2.5-flash-image",
             _ => "gpt-image-1",
         }
     } else {
@@ -570,6 +740,18 @@ async fn generate_icon(
     };
 
     match provider.as_str() {
+        "openrouter" => {
+            let api_key = {
+                let key = state.openrouter_api_key.lock().map_err(|e| e.to_string())?;
+                if key.is_empty() {
+                    return Err("No OpenRouter API key. Add one in the settings.".to_string());
+                }
+                key.clone()
+            };
+
+            let images = openrouter_generate_images(&api_key, model_name, &full_prompt, 3).await?;
+            Ok(GenerateIconResponse { images })
+        }
         "gemini" => {
             let api_key = {
                 let key = state.gemini_api_key.lock().map_err(|e| e.to_string())?;
@@ -628,7 +810,10 @@ async fn save_icon(
     match result {
         Some(file_path) => {
             let pb = file_path.into_path().unwrap_or_default();
-            let parent_dir = pb.parent().unwrap_or(std::path::Path::new(".")).to_path_buf();
+            let parent_dir = pb
+                .parent()
+                .unwrap_or(std::path::Path::new("."))
+                .to_path_buf();
             let file_stem = pb.file_stem().and_then(|s| s.to_str()).unwrap_or("App");
             let iconset_dir = parent_dir.join(format!("{}.iconset", file_stem));
             let icns_path = parent_dir.join(format!("{}.icns", file_stem));
@@ -706,6 +891,7 @@ pub fn run() {
         .manage(AppState {
             openai_api_key: Mutex::new(String::new()),
             gemini_api_key: Mutex::new(String::new()),
+            openrouter_api_key: Mutex::new(String::new()),
             has_unsaved_icon: Mutex::new(false),
         })
         .setup(|app| {
@@ -724,6 +910,15 @@ pub fn run() {
                     if let Some(key_str) = val.as_str() {
                         let state = app.state::<AppState>();
                         if let Ok(mut key) = state.gemini_api_key.lock() {
+                            *key = key_str.to_string();
+                        };
+                    }
+                }
+                // Load OpenRouter API key
+                if let Some(val) = store.get(OPENROUTER_API_KEY_KEY) {
+                    if let Some(key_str) = val.as_str() {
+                        let state = app.state::<AppState>();
+                        if let Ok(mut key) = state.openrouter_api_key.lock() {
                             *key = key_str.to_string();
                         };
                     }
@@ -751,6 +946,9 @@ pub fn run() {
             set_gemini_api_key,
             get_gemini_api_key_status,
             get_stored_gemini_api_key,
+            set_openrouter_api_key,
+            get_openrouter_api_key_status,
+            get_stored_openrouter_api_key,
             set_unsaved_icon_state,
             read_file_as_base64,
         ])

@@ -22,6 +22,14 @@ import { cn } from "@/lib/utils";
 
 type ResumeAfterCancel = "idle" | "generated" | "refine";
 
+function getDefaultModel(provider: Provider): string {
+  switch (provider) {
+    case "gemini": return "gemini-2.5-flash-image";
+    case "openrouter": return "openai/gpt-5-image";
+    default: return "gpt-image-1";
+  }
+}
+
 export function AppContent() {
 	const [iconState, setIconState] = useState<IconState>("idle");
 	const [prompt, setPrompt] = useState("");
@@ -223,7 +231,7 @@ export function AppContent() {
 				<OpenAIApiKeyStartupModal
 					onSaved={(p: Provider) => {
 						setProvider(p);
-						setModel(p === "gemini" ? "gemini-2.5-flash-image" : "gpt-image-1");
+						setModel(getDefaultModel(p));
 						setOpenAIApiKeyStartupOpen(false);
 					}}
 				/>
@@ -237,9 +245,7 @@ export function AppContent() {
 						setOpenAIApiKeyManageReason(null);
 						if (p) {
 							setProvider(p);
-							setModel(
-								p === "gemini" ? "gemini-2.5-flash-image" : "gpt-image-1",
-							);
+							setModel(getDefaultModel(p));
 						}
 						if (saved) setOpenAIApiKeyStartupOpen(false);
 					}}
@@ -326,6 +332,121 @@ export function AppContent() {
 										? "bg-primary text-primary-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
 									iconState === "generating" && "opacity-50 cursor-not-allowed",
+								)}
+							>
+								Nano Banana 2
+							</button>
+						</>
+					)}
+					{provider === "openrouter" && (
+						<>
+							<button
+								onClick={() =>
+									setModel("openai/gpt-5-image")
+								}
+								disabled={iconState === "generating"}
+								className={cn(
+									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									model === "openai/gpt-5-image"
+										? "bg-primary text-primary-foreground shadow-sm"
+										: "text-muted-foreground hover:text-foreground",
+									iconState === "generating" &&
+										"opacity-50 cursor-not-allowed",
+								)}
+							>
+								gpt-image-1
+							</button>
+							<button
+								onClick={() =>
+									setModel(
+										"openai/gpt-5.4-image-2",
+									)
+								}
+								disabled={iconState === "generating"}
+								className={cn(
+									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									model ===
+										"openai/gpt-5.4-image-2"
+										? "bg-primary text-primary-foreground shadow-sm"
+										: "text-muted-foreground hover:text-foreground",
+									iconState === "generating" &&
+										"opacity-50 cursor-not-allowed",
+								)}
+							>
+								gpt-image-2
+							</button>
+							<button
+								onClick={() =>
+									setModel(
+										"openai/gpt-5-image-mini",
+									)
+								}
+								disabled={iconState === "generating"}
+								className={cn(
+									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									model ===
+										"openai/gpt-5-image-mini"
+										? "bg-primary text-primary-foreground shadow-sm"
+										: "text-muted-foreground hover:text-foreground",
+									iconState === "generating" &&
+										"opacity-50 cursor-not-allowed",
+								)}
+							>
+								gpt-image-1-mini
+							</button>
+							<button
+								onClick={() =>
+									setModel(
+										"google/gemini-2.5-flash-image",
+									)
+								}
+								disabled={iconState === "generating"}
+								className={cn(
+									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									model ===
+										"google/gemini-2.5-flash-image"
+										? "bg-primary text-primary-foreground shadow-sm"
+										: "text-muted-foreground hover:text-foreground",
+									iconState === "generating" &&
+										"opacity-50 cursor-not-allowed",
+								)}
+							>
+								Nano Banana
+							</button>
+							<button
+								onClick={() =>
+									setModel(
+										"google/gemini-3-pro-image-preview",
+									)
+								}
+								disabled={iconState === "generating"}
+								className={cn(
+									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									model ===
+										"google/gemini-3-pro-image-preview"
+										? "bg-primary text-primary-foreground shadow-sm"
+										: "text-muted-foreground hover:text-foreground",
+									iconState === "generating" &&
+										"opacity-50 cursor-not-allowed",
+								)}
+							>
+								Nano Banana Pro
+							</button>
+							<button
+								onClick={() =>
+									setModel(
+										"google/gemini-3.1-flash-image-preview",
+									)
+								}
+								disabled={iconState === "generating"}
+								className={cn(
+									"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+									model ===
+										"google/gemini-3.1-flash-image-preview"
+										? "bg-primary text-primary-foreground shadow-sm"
+										: "text-muted-foreground hover:text-foreground",
+									iconState === "generating" &&
+										"opacity-50 cursor-not-allowed",
 								)}
 							>
 								Nano Banana 2
