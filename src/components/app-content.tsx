@@ -190,7 +190,7 @@ export function AppContent() {
 		pipeline.status === "downloading" && pipeline.progress.label !== "";
 
 	return (
-		<div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
+		<div className="flex flex-col h-screen bg-background text-foreground overflow-hidden select-none app-drag">
 			<SquircleClipDefs />
 
 			{errorMessage && (
@@ -232,9 +232,6 @@ export function AppContent() {
 				/>
 			)}
 
-			{/* macOS traffic-light spacer (also serves as the drag region). */}
-			<div className="draggable" />
-
 			{/* Compact title-bar status: progress line + label. */}
 			{showStatus && (
 				<TitleBarStatus
@@ -245,12 +242,12 @@ export function AppContent() {
 			)}
 
 			{/* Save button — top right corner. */}
-			<div className="absolute top-3 right-3 z-50">
+			<div className="absolute top-3 right-3 z-50 app-no-drag">
 				<button
 					disabled={!canSave}
 					onClick={handleSave}
 					className={cn(
-						"flex items-center gap-2 px-4 h-8 rounded-lg text-sm font-medium transition-all duration-200 non-draggable",
+						"flex items-center gap-2 px-4 h-8 rounded-lg text-sm font-medium transition-all duration-200",
 						canSave
 							? "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] shadow-md"
 							: "bg-secondary/30 text-muted-foreground/40 cursor-not-allowed",
@@ -262,7 +259,7 @@ export function AppContent() {
 			</div>
 
 			{/* Model selector — centered between preview and input. */}
-			<div className="flex justify-center pt-14 non-draggable">
+			<div className="flex justify-center app-no-drag">
 				<div className="flex items-center gap-1 rounded-full border border-border bg-secondary/30 p-0.5">
 					<button
 						onClick={() => setModel("gpt-image-1")}
@@ -305,7 +302,7 @@ export function AppContent() {
 			</div>
 
 			{/* Bottom area — input, pushed to the bottom. */}
-			<div className="flex flex-1 flex-col items-center justify-end gap-6 px-4 pb-4">
+			<div className="flex flex-1 flex-col items-center justify-end gap-6 px-4 pb-4 app-no-drag">
 				<PromptInput
 					value={prompt}
 					onChange={setPrompt}

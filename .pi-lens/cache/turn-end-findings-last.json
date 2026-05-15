@@ -1,4 +1,4 @@
 {
-  "signature": "index.html|src/App.tsx|src/main.tsx::📐 Cascade errors in 1 neighbor file(s) — fix before finishing turn:\n<diagnostics file=\"src/components/app-content.tsx\" reason=\"fallback\">\n  line 8, col 8 rule=cascade:2724: '\"@/components/openai-api-key-modals\"' has no exported member named 'OpenAIApiKeyManageReason'. Did \n</diagnostics>",
+  "signature": "src/index.css::📐 Cascade errors in 1 neighbor file(s) — fix before finishing turn:\n<diagnostics file=\"src/components/app-content.tsx\" reason=\"fallback\">\n  line 193, col 110 rule=cascade:2353: Object literal may only specify known properties, and 'WebkitAppRegion' does not exist in type 'Prop\n  line 245, col 58 rule=cascade:2353: Object literal may only specify known properties, and 'WebkitAppRegion' does not exist in type 'Prop\n  line 262, col 50 rule=cascade:2353: Object literal may only specify known properties, and 'WebkitAppRegion' does not exist in type 'Prop\n  line 305, col 92 rule=cascade:2353: Object literal may only specify known properties, and 'WebkitAppRegion' does not exist in type 'Prop\n</diagnostics>",
   "sessionId": "lens-mp6bw0mr-32696ea6"
 }

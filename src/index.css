@@ -144,6 +144,14 @@
 		-webkit-app-region: drag;
 	}
 
+	.app-drag {
+		-webkit-app-region: drag;
+	}
+
+	.app-no-drag {
+		-webkit-app-region: no-drag;
+	}
+
 	.non-draggable {
 		-webkit-app-region: no-drag;
 	}
