@@ -1,4 +1,4 @@
-import { useRef, type ChangeEvent, type KeyboardEvent } from "react";
+import { useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent } from "react";
 import {
 	ArrowUp,
 	ChevronRight,
@@ -38,6 +38,8 @@ export function PromptInput({
 	onAttachmentsChange: (attachments: string[]) => void;
 	onOpenApiKeySettings: () => void;
 }) {
+	const [dragOver, setDragOver] = useState(false);
+	const dropRef = useRef<HTMLDivElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,11 +64,51 @@ export function PromptInput({
 		onAttachmentsChange(attachments.filter((_, i) => i !== index));
 	};
 
+	const handleDragOver = (e: DragEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setDragOver(true);
+	};
+
+	const handleDragEnter = (e: DragEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setDragOver(true);
+	};
+
+	const handleDragLeave = (e: DragEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+		// Only set false if leaving the container, not a child
+		if (dropRef.current && !dropRef.current.contains(e.relatedTarget as Node)) {
+			setDragOver(false);
+		}
+	};
+
+	const handleDrop = (e: DragEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setDragOver(false);
+
+		const files = Array.from(e.dataTransfer?.files ?? []);
+		const imageFiles = files.filter((f) => f.type.startsWith("image/"));
+		if (imageFiles.length === 0) return;
+
+		const newUrls = imageFiles.map((file) => URL.createObjectURL(file));
+		onAttachmentsChange([...attachments, ...newUrls]);
+	};
+
 	return (
 		<div
+			ref={dropRef}
+			onDragOver={handleDragOver}
+			onDragEnter={handleDragEnter}
+			onDragLeave={handleDragLeave}
+			onDrop={handleDrop}
 			className={cn(
 				"w-full rounded-4xl border border-border bg-secondary/40 transition-all duration-200",
 				"focus-within:border-border/80 focus-within:bg-secondary/60 p-3",
+				dragOver && "border-primary/60 bg-primary/5",
 			)}
 		>
 			{/* Textarea. */}

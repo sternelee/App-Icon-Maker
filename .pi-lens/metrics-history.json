@@ -150,7 +150,32 @@
         }
       ],
       "trend": "stable"
+    },
+    "src/components/prompt-input.tsx": {
+      "latest": {
+        "commit": "b9afc6b",
+        "timestamp": "2026-05-15T03:51:19.124Z",
+        "mi": 32,
+        "cognitive": 37,
+        "nesting": 4,
+        "lines": 220,
+        "maxCyclomatic": 45,
+        "entropy": 6.72
+      },
+      "history": [
+        {
+          "commit": "b9afc6b",
+          "timestamp": "2026-05-15T03:51:19.124Z",
+          "mi": 32,
+          "cognitive": 37,
+          "nesting": 4,
+          "lines": 220,
+          "maxCyclomatic": 45,
+          "entropy": 6.72
+        }
+      ],
+      "trend": "stable"
     }
   },
-  "capturedAt": "2026-05-15T03:37:04.384Z"
+  "capturedAt": "2026-05-15T03:51:24.135Z"
 }
