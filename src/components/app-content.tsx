@@ -307,12 +307,22 @@ export function AppContent() {
 						)}
 						{provider === "vercel" && (
 							<SelectGroup>
-								<SelectItem value="google/gemini-3.1-flash-image-preview">Nano Banana 2</SelectItem>
-								<SelectItem value="google/gemini-3-pro-image">Nano Banana Pro</SelectItem>
-								<SelectItem value="google/gemini-2.5-flash-image">Nano Banana</SelectItem>
+								<SelectItem value="google/gemini-3.1-flash-image-preview">
+									Nano Banana 2
+								</SelectItem>
+								<SelectItem value="google/gemini-3-pro-image">
+									Nano Banana Pro
+								</SelectItem>
+								<SelectItem value="google/gemini-2.5-flash-image">
+									Nano Banana
+								</SelectItem>
 								<SelectItem value="openai/gpt-image-2">gpt-image-2</SelectItem>
-								<SelectItem value="openai/gpt-image-1.5">gpt-image-1.5</SelectItem>
-								<SelectItem value="openai/gpt-image-1-mini">gpt-image-1-mini</SelectItem>
+								<SelectItem value="openai/gpt-image-1.5">
+									gpt-image-1.5
+								</SelectItem>
+								<SelectItem value="openai/gpt-image-1-mini">
+									gpt-image-1-mini
+								</SelectItem>
 								<SelectItem value="openai/gpt-image-1">gpt-image-1</SelectItem>
 							</SelectGroup>
 						)}

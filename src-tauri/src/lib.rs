@@ -531,7 +531,7 @@ async fn vercel_generate_images(
     count: u32,
 ) -> Result<Vec<String>, String> {
     let client = reqwest::Client::new();
-    let url = "https://api.vercel.com/v1/chat/completions";
+    let url = "https://ai-gateway.vercel.sh/v1/images/generations";
 
     let mut handles = Vec::new();
     for _ in 0..count.min(3) {
@@ -609,7 +609,6 @@ async fn vercel_generate_images(
     }
     Ok(images)
 }
-
 
 // ---------------------------------------------------------------------------
 // Icon build helpers (.iconset → .icns via sips + iconutil)
@@ -796,7 +795,8 @@ fn get_stored_openrouter_api_key(state: State<AppState>) -> Result<StoredApiKey,
     let key = state.openrouter_api_key.lock().map_err(|e| e.to_string())?;
     Ok(StoredApiKey {
         api_key: key.clone(),
-    })}
+    })
+}
 
 #[tauri::command]
 fn set_vercel_api_key(
@@ -809,7 +809,10 @@ fn set_vercel_api_key(
         return Err("API key cannot be empty.".to_string());
     }
     if let Ok(store) = app.store(STORE_FILE) {
-        store.set(VERCEL_API_KEY_KEY, serde_json::Value::String(trimmed.clone()));
+        store.set(
+            VERCEL_API_KEY_KEY,
+            serde_json::Value::String(trimmed.clone()),
+        );
         let _ = store.save();
     }
     let mut key = state.vercel_api_key.lock().map_err(|e| e.to_string())?;
@@ -832,7 +835,6 @@ fn get_stored_vercel_api_key(state: State<AppState>) -> Result<StoredApiKey, Str
     Ok(StoredApiKey {
         api_key: key.clone(),
     })
-
 }
 
 #[tauri::command]
