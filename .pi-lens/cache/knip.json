@@ -1,0 +1,193 @@
+{
+  "success": true,
+  "issues": [
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-0d93c49b5a12a678/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-0d93c49b5a12a678/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js"
+    },
+    {
+      "type": "dependency",
+      "name": "@tauri-apps/plugin-dialog",
+      "file": "package.json",
+      "line": 16
+    },
+    {
+      "type": "dependency",
+      "name": "@tauri-apps/plugin-opener",
+      "file": "package.json",
+      "line": 17
+    },
+    {
+      "type": "dependency",
+      "name": "@tauri-apps/plugin-shell",
+      "file": "package.json",
+      "line": 18
+    },
+    {
+      "type": "dependency",
+      "name": "@tauri-apps/plugin-store",
+      "file": "package.json",
+      "line": 19
+    },
+    {
+      "type": "dependency",
+      "name": "class-variance-authority",
+      "file": "package.json",
+      "line": 20
+    },
+    {
+      "type": "dependency",
+      "name": "tailwindcss-animate",
+      "file": "package.json",
+      "line": 28
+    },
+    {
+      "type": "dependency",
+      "name": "tw-animate-css",
+      "file": "package.json",
+      "line": 29
+    },
+    {
+      "type": "export",
+      "name": "useTheme",
+      "file": "src/components/theme-provider.tsx",
+      "line": 23
+    },
+    {
+      "type": "export",
+      "name": "PipelineStatus",
+      "file": "src/lib/icon-pipeline.ts",
+      "line": 5
+    },
+    {
+      "type": "export",
+      "name": "PipelineProgress",
+      "file": "src/lib/icon-pipeline.ts",
+      "line": 12
+    }
+  ],
+  "unusedExports": [
+    {
+      "type": "export",
+      "name": "useTheme",
+      "file": "src/components/theme-provider.tsx",
+      "line": 23
+    },
+    {
+      "type": "export",
+      "name": "PipelineStatus",
+      "file": "src/lib/icon-pipeline.ts",
+      "line": 5
+    },
+    {
+      "type": "export",
+      "name": "PipelineProgress",
+      "file": "src/lib/icon-pipeline.ts",
+      "line": 12
+    }
+  ],
+  "unusedFiles": [
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-0d93c49b5a12a678/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-0d93c49b5a12a678/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-6e696a9d14d27265/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js"
+    }
+  ],
+  "unusedDeps": [
+    {
+      "type": "dependency",
+      "name": "@tauri-apps/plugin-dialog",
+      "file": "package.json",
+      "line": 16
+    },
+    {
+      "type": "dependency",
+      "name": "@tauri-apps/plugin-opener",
+      "file": "package.json",
+      "line": 17
+    },
+    {
+      "type": "dependency",
+      "name": "@tauri-apps/plugin-shell",
+      "file": "package.json",
+      "line": 18
+    },
+    {
+      "type": "dependency",
+      "name": "@tauri-apps/plugin-store",
+      "file": "package.json",
+      "line": 19
+    },
+    {
+      "type": "dependency",
+      "name": "class-variance-authority",
+      "file": "package.json",
+      "line": 20
+    },
+    {
+      "type": "dependency",
+      "name": "tailwindcss-animate",
+      "file": "package.json",
+      "line": 28
+    },
+    {
+      "type": "dependency",
+      "name": "tw-animate-css",
+      "file": "package.json",
+      "line": 29
+    }
+  ],
+  "unlistedDeps": [],
+  "summary": "Found 16 issues"
+}
