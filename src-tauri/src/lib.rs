@@ -369,6 +369,12 @@ fn open_external_url(url: String) -> Result<(), String> {
     run_command("open", &[&url])
 }
 
+#[tauri::command]
+fn read_file_as_base64(path: String) -> Result<String, String> {
+    let data = std::fs::read(&path).map_err(|e| format!("Failed to read file: {}", e))?;
+    Ok(base64::engine::general_purpose::STANDARD.encode(&data))
+}
+
 // ---------------------------------------------------------------------------
 // Response types
 // ---------------------------------------------------------------------------
@@ -446,6 +452,7 @@ pub fn run() {
             get_openai_api_key_status,
             get_stored_openai_api_key,
             set_unsaved_icon_state,
+            read_file_as_base64,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

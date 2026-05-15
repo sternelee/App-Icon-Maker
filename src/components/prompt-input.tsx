@@ -105,20 +105,16 @@ export function PromptInput({
 		onAttachmentsChange([...attachments, ...newUrls]);
 	};
 
-	// Tauri drag-drop: listen for file drops from OS
+	// Tauri drag-drop: listen for file drops from OS, read via Rust backend
 	useEffect(() => {
 		let unlisten: (() => void) | undefined;
 
 		(async () => {
 			try {
-				const { getCurrentWindow } = await import(
-					"@tauri-apps/api/window"
-				);
-				const { convertFileSrc } = await import(
-					"@tauri-apps/api/core"
-				);
+				const { getCurrentWindow } = await import("@tauri-apps/api/window");
+				const { invoke } = await import("@tauri-apps/api/core");
 				unlisten = await getCurrentWindow().onDragDropEvent(
-					(event: any) => {
+					async (event: any) => {
 						const { type, paths } = event.payload;
 						if (type === "over" || type === "enter") {
 							setDragOver(true);
@@ -126,21 +122,25 @@ export function PromptInput({
 							setDragOver(false);
 						} else if (type === "drop") {
 							setDragOver(false);
-							const imagePaths: string[] = (
-								paths ?? []
-							).filter((p: string) =>
-								/.(png|jpg|jpeg|gif|webp|bmp|svg)$/i.test(
-									p,
-								),
+							const imagePaths: string[] = (paths ?? []).filter((p: string) =>
+								/.(png|jpg|jpeg|gif|webp|bmp|svg)$/i.test(p),
 							);
 							if (imagePaths.length === 0) return;
-							const urls = imagePaths.map((p: string) =>
-								convertFileSrc(p),
+							const newUrls = await Promise.all(
+								imagePaths.map(async (p: string) => {
+									try {
+										const b64 = await invoke<string>("read_file_as_base64", {
+											path: p,
+										});
+										return `data:image/png;base64,${b64}`;
+									} catch {
+										return null;
+									}
+								}),
 							);
-							onAttachmentsChange([
-								...attachments,
-								...urls,
-							]);
+							const valid = newUrls.filter((u): u is string => u !== null);
+							if (valid.length === 0) return;
+							onAttachmentsChange([...attachments, ...valid]);
 						}
 					},
 				);
