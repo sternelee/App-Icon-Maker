@@ -1,4 +1,4 @@
 {
-  "signature": "src/components/openai-api-key-modals.tsx::Unresolved from this turn — src/components/openai-api-key-modals.tsx:\n🔴 STOP — 1 issue(s) must be fixed:\n  L154: Expected 1 arguments, but got 0.",
+  "signature": "src/components/app-content.tsx::Unresolved from this turn — src/components/app-content.tsx:\n🔴 STOP — 1 issue(s) must be fixed:\n  L234: Type 'string' is not assignable to type 'Provider | undefined'.",
   "sessionId": "lens-mp6bw0mr-32696ea6"
 }

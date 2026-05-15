@@ -36,7 +36,7 @@ export function AppContent() {
 	} | null>(null);
 	const [iconDirty, setIconDirty] = useState(false);
 	const [openAIApiKeyStartupOpen, setOpenAIApiKeyStartupOpen] = useState(false);
-	const [provider, setProvider] = useState("openai");
+	const [provider, setProvider] = useState<Provider>("openai");
 	const [model, setModel] = useState("gpt-image-1");
 	const [openAIApiKeyManageReason, setOpenAIApiKeyManageReason] =
 		useState<OpenAIApiKeyManageReason | null>(null);
@@ -231,6 +231,7 @@ export function AppContent() {
 				<OpenAIApiKeyManageModal
 					key={openAIApiKeyManageReason}
 					reason={openAIApiKeyManageReason}
+					defaultProvider={provider}
 					onClose={(saved: boolean, p?: Provider) => {
 						setOpenAIApiKeyManageReason(null);
 						if (p) setProvider(p);
