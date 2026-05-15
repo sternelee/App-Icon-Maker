@@ -241,8 +241,37 @@ export function AppContent() {
 				/>
 			)}
 
-			{/* Save button — top right corner. */}
-			<div className="absolute top-3 right-3 z-50 app-no-drag">
+			{/* Top bar — model selector left, save right. */}
+			<div className="flex items-center justify-between px-4 pt-3 app-no-drag">
+				<div className="flex items-center gap-1 rounded-full border border-border bg-secondary/30 p-0.5">
+					<button
+						onClick={() => setModel("gpt-image-1")}
+						disabled={iconState === "generating"}
+						className={cn(
+							"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+							model === "gpt-image-1"
+								? "bg-primary text-primary-foreground shadow-sm"
+								: "text-muted-foreground hover:text-foreground",
+							iconState === "generating" && "opacity-50 cursor-not-allowed",
+						)}
+					>
+						gpt-image-1
+					</button>
+					<button
+						onClick={() => setModel("gpt-image-2")}
+						disabled={iconState === "generating"}
+						className={cn(
+							"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
+							model === "gpt-image-2"
+								? "bg-primary text-primary-foreground shadow-sm"
+								: "text-muted-foreground hover:text-foreground",
+							iconState === "generating" && "opacity-50 cursor-not-allowed",
+						)}
+					>
+						gpt-image-2
+					</button>
+				</div>
+
 				<button
 					disabled={!canSave}
 					onClick={handleSave}
@@ -259,40 +288,8 @@ export function AppContent() {
 			</div>
 
 			{/* Middle area — vertically centered. */}
-			<div className="flex-1 flex flex-col items-center justify-center gap-6 px-10">
-				{/* Model selector — above icon preview. */}
-				<div className="flex justify-center app-no-drag">
-					<div className="flex items-center gap-1 rounded-full border border-border bg-secondary/30 p-0.5">
-						<button
-							onClick={() => setModel("gpt-image-1")}
-							disabled={iconState === "generating"}
-							className={cn(
-								"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
-								model === "gpt-image-1"
-									? "bg-primary text-primary-foreground shadow-sm"
-									: "text-muted-foreground hover:text-foreground",
-								iconState === "generating" && "opacity-50 cursor-not-allowed",
-							)}
-						>
-							gpt-image-1
-						</button>
-						<button
-							onClick={() => setModel("gpt-image-2")}
-							disabled={iconState === "generating"}
-							className={cn(
-								"px-3 py-1 rounded-full text-xs font-medium transition-all duration-200",
-								model === "gpt-image-2"
-									? "bg-primary text-primary-foreground shadow-sm"
-									: "text-muted-foreground hover:text-foreground",
-								iconState === "generating" && "opacity-50 cursor-not-allowed",
-							)}
-						>
-							gpt-image-2
-						</button>
-					</div>
-				</div>
-
-				{/* Icon preview — centered. */}
+			<div className="flex-1 flex flex-col items-center justify-center px-10">
+				{/* Icon preview. */}
 				<MacOSIcon
 					state={iconState}
 					selected={selectedVariant}
