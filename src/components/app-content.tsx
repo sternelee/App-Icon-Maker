@@ -32,17 +32,44 @@ import { cn } from "@/lib/utils";
 type ResumeAfterCancel = "idle" | "generated" | "refine";
 
 function getDefaultModel(provider: Provider): string {
-	switch (provider) {
-		case "gemini":
-			return "gemini-2.5-flash-image";
-		case "openrouter":
-			return "openai/gpt-5-image";
-		case "fal":
-			return "fal-ai/nano-banana-2/edit";
-		default:
-			return "gpt-image-1";
-	}
+	const list = MODEL_LIST[provider];
+	return list && list.length > 0 ? list[0].value : "gpt-image-1";
 }
+
+
+const MODEL_LIST: Record<Provider, { value: string; label: string }[]> = {
+  openai: [
+    { value: "gpt-image-1", label: "gpt-image-1" },
+    { value: "gpt-image-2", label: "gpt-image-2" },
+  ],
+  gemini: [
+    { value: "gemini-2.5-flash-image", label: "Nano Banana" },
+    { value: "gemini-3-pro-image-preview", label: "Nano Banana Pro" },
+    { value: "gemini-3.1-flash-image-preview", label: "Nano Banana 2" },
+  ],
+  openrouter: [
+    { value: "openai/gpt-5-image", label: "gpt-image-1" },
+    { value: "openai/gpt-5.4-image-2", label: "gpt-image-2" },
+    { value: "openai/gpt-5-image-mini", label: "gpt-image-1-mini" },
+    { value: "google/gemini-2.5-flash-image", label: "Nano Banana" },
+    { value: "google/gemini-3-pro-image-preview", label: "Nano Banana Pro" },
+    { value: "google/gemini-3.1-flash-image-preview", label: "Nano Banana 2" },
+  ],
+  fal: [
+    { value: "fal-ai/nano-banana-2/edit", label: "Nano Banana 2" },
+    { value: "fal-ai/nano-banana-pro/edit", label: "Nano Banana Pro" },
+    { value: "fal-ai/nano-banana/edit", label: "Nano Banana" },
+    { value: "openai/gpt-image-2/edit", label: "gpt-image-2" },
+    { value: "openai/gpt-image-1.5/edit", label: "gpt-image-1.5" },
+    { value: "fal-ai/flux-2-pro/edit", label: "Flux 2 Pro" },
+    { value: "fal-ai/flux-pro/kontext", label: "Flux Pro Kontext" },
+    { value: "fal-ai/bytedance/seedream/v5/lite/edit", label: "Seedream v5 Lite" },
+    { value: "fal-ai/bytedance/seedream/v4.5/edit", label: "Seedream v4.5" },
+    { value: "fal-ai/gemini-3-pro-image-preview/edit", label: "Nano Banana Pro (Gemini)" },
+    { value: "fal-ai/gemini-25-flash-image/edit", label: "Nano Banana (Gemini)" },
+    { value: "fal-ai/qwen-image-edit-2511", label: "Qwen Image Edit" },
+  ],
+};
 
 export function AppContent() {
 	const [iconState, setIconState] = useState<IconState>("idle");
@@ -341,66 +368,32 @@ export function AppContent() {
 						disabled={iconState === "generating"}
 					>
 						<SelectTrigger className="h-8 text-xs">
-							<SelectValue placeholder="Select model" />
+							<SelectValue placeholder="Select model">
+								{(() => {
+									const items = MODEL_LIST[provider] || [];
+									const found = items.find((m) => m.value === model);
+									return found ? found.label : model;
+								})()}
+							</SelectValue>
 						</SelectTrigger>
 						<SelectContent>
-							{provider === "openai" && (
+							{provider !== "fal" && MODEL_LIST[provider] && (
 								<SelectGroup>
-									<SelectItem value="gpt-image-1">gpt-image-1</SelectItem>
-									<SelectItem value="gpt-image-2">gpt-image-2</SelectItem>
+									{MODEL_LIST[provider].map((m) => (
+										<SelectItem key={m.value} value={m.value}>
+											{m.label}
+										</SelectItem>
+									))}
 								</SelectGroup>
 							)}
-							{provider === "gemini" && (
-								<SelectGroup>
-									<SelectItem value="gemini-2.5-flash-image">
-										Nano Banana
-									</SelectItem>
-									<SelectItem value="gemini-3-pro-image-preview">
-										Nano Banana Pro
-									</SelectItem>
-									<SelectItem value="gemini-3.1-flash-image-preview">
-										Nano Banana 2
-									</SelectItem>
-								</SelectGroup>
-							)}
+							
 							{provider === "fal" && !falCustom && (
 								<SelectGroup>
-									<SelectItem value="fal-ai/nano-banana-2/edit">
-										Nano Banana 2
-									</SelectItem>
-									<SelectItem value="fal-ai/nano-banana-pro/edit">
-										Nano Banana Pro
-									</SelectItem>
-									<SelectItem value="fal-ai/nano-banana/edit">
-										Nano Banana
-									</SelectItem>
-									<SelectItem value="openai/gpt-image-2/edit">
-										gpt-image-2
-									</SelectItem>
-									<SelectItem value="openai/gpt-image-1.5/edit">
-										gpt-image-1.5
-									</SelectItem>
-									<SelectItem value="fal-ai/flux-2-pro/edit">
-										Flux 2 Pro
-									</SelectItem>
-									<SelectItem value="fal-ai/flux-pro/kontext">
-										Flux Pro Kontext
-									</SelectItem>
-									<SelectItem value="fal-ai/bytedance/seedream/v5/lite/edit">
-										Seedream v5 Lite
-									</SelectItem>
-									<SelectItem value="fal-ai/bytedance/seedream/v4.5/edit">
-										Seedream v4.5
-									</SelectItem>
-									<SelectItem value="fal-ai/gemini-3-pro-image-preview/edit">
-										Nano Banana Pro (Gemini)
-									</SelectItem>
-									<SelectItem value="fal-ai/gemini-25-flash-image/edit">
-										Nano Banana (Gemini)
-									</SelectItem>
-									<SelectItem value="fal-ai/qwen-image-edit-2511">
-										Qwen Image Edit
-									</SelectItem>
+									{MODEL_LIST.fal.map((m) => (
+										<SelectItem key={m.value} value={m.value}>
+											{m.label}
+										</SelectItem>
+									))}
 									{(() => {
 										const saved = localStorage.getItem("fal_custom_model");
 										return saved ? (
@@ -414,28 +407,7 @@ export function AppContent() {
 									<SelectItem value="__custom__">Custom…</SelectItem>
 								</SelectGroup>
 							)}
-							{provider === "openrouter" && (
-								<SelectGroup>
-									<SelectItem value="openai/gpt-5-image">
-										gpt-image-1
-									</SelectItem>
-									<SelectItem value="openai/gpt-5.4-image-2">
-										gpt-image-2
-									</SelectItem>
-									<SelectItem value="openai/gpt-5-image-mini">
-										gpt-image-1-mini
-									</SelectItem>
-									<SelectItem value="google/gemini-2.5-flash-image">
-										Nano Banana
-									</SelectItem>
-									<SelectItem value="google/gemini-3-pro-image-preview">
-										Nano Banana Pro
-									</SelectItem>
-									<SelectItem value="google/gemini-3.1-flash-image-preview">
-										Nano Banana 2
-									</SelectItem>
-								</SelectGroup>
-							)}
+							
 						</SelectContent>
 					</Select>
 				)}

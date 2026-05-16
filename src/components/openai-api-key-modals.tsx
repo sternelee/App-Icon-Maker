@@ -41,7 +41,7 @@ const PROVIDER_CONFIG: Record<
     setKeyCmd: "set_gemini_api_key",
   },
   fal: {
-    label: "fal.ai",
+    label: "Fal.ai",
     keyLabel: "fal.ai API key",
     placeholder: "…",
     helpUrl: "https://fal.ai/dashboard/api-keys",
@@ -93,7 +93,9 @@ function ProviderSelect({
       disabled={disabled}
     >
       <SelectTrigger className="h-8 text-xs w-[150px]">
-        <SelectValue placeholder="Select provider">{(v: any) => PROVIDER_CONFIG[v as Provider]?.label || v}</SelectValue>
+        <SelectValue placeholder="Select provider">
+          {(v: any) => PROVIDER_CONFIG[v as Provider]?.label || v}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {(["openai", "gemini", "openrouter", "fal"] as Provider[]).map((p) => (
