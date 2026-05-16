@@ -3,16 +3,12 @@
     "Cargo.toml": {
       "modifiedRanges": [
         {
-          "start": 22,
-          "end": 23
-        },
-        {
-          "start": 25,
-          "end": 26
+          "start": 1,
+          "end": 36
         }
       ],
       "importsChanged": false,
-      "lastEdit": "2026-05-16T06:25:43.132Z"
+      "lastEdit": "2026-05-16T06:32:27.913Z"
     },
     "src/lib.rs": {
       "modifiedRanges": [
@@ -91,6 +87,6 @@
   },
   "turnCycles": 0,
   "maxCycles": 3,
-  "lastUpdated": "2026-05-16T06:25:43.132Z",
+  "lastUpdated": "2026-05-16T06:32:27.913Z",
   "sessionId": "lens-mp7u0p5p-0a7db208"
 }

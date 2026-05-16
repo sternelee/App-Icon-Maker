@@ -278,7 +278,7 @@ export function AppContent() {
       )}
 
       {/* Top bar — model selector dropdown, save right. */}
-      <div className="flex items-center px-4 pt-3 app-no-drag">
+      <div className="flex items-center px-4 pt-safe app-no-drag">
         {/* Model selector — changes by provider set in settings. */}
         {provider === "fal" && falCustom ? (
           <div className="flex items-center">
@@ -466,7 +466,7 @@ export function AppContent() {
       </div>
 
       {/* Bottom area — input at the bottom. */}
-      <div className="flex flex-col items-center px-4 pb-4 app-no-drag">
+      <div className="flex flex-col items-center px-4 pb-safe app-no-drag">
         <PromptInput
           value={prompt}
           onChange={setPrompt}
