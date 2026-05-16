@@ -12,6 +12,7 @@ struct AppState {
     openai_api_key: Mutex<String>,
     gemini_api_key: Mutex<String>,
     openrouter_api_key: Mutex<String>,
+    fal_api_key: Mutex<String>,
     has_unsaved_icon: Mutex<bool>,
 }
 
@@ -19,6 +20,7 @@ const STORE_FILE: &str = "app-icon-maker.json";
 const OPENAI_API_KEY_KEY: &str = "openai.api_key";
 const GEMINI_API_KEY_KEY: &str = "gemini.api_key";
 const OPENROUTER_API_KEY_KEY: &str = "openrouter.api_key";
+const FAL_API_KEY_KEY: &str = "fal.api_key";
 
 // ---------------------------------------------------------------------------
 // Icon resize constants
@@ -611,52 +613,9 @@ async fn openrouter_edit_images(
     Ok(images)
 }
 
-/// Generate images via Vercel AI Gateway (OpenAI-compatible chat completions).
-async fn vercel_generate_images(
-    api_key: &str,
-    model: &str,
-    prompt: &str,
-    count: u32,
-) -> Result<Vec<String>, String> {
-    let client = reqwest::Client::new();
-    // Vercel AI Gateway uses OpenAI-compatible /v1/images/generations
-    let url = "https://ai-gateway.vercel.sh/v1/images/generations";
 
-    // Use OpenAI image generation format — Vercel routes to the appropriate provider
-    let payload = OpenAIGenerationRequest {
-        model: model.to_string(),
-        prompt: prompt.to_string(),
-        n: count.min(10),
-        size: "1024x1024".to_string(),
-        quality: "high".to_string(),
-    };
 
-    let res = client
-        .post(url)
-        .header("Authorization", format!("Bearer {}", api_key))
-        .header("Content-Type", "application/json")
-        .json(&payload)
-        .send()
-        .await
-        .map_err(|e| format!("Vercel network error: {}", e))?;
 
-    if !res.status().is_success() {
-        let status = res.status();
-        let body = res.text().await.unwrap_or_default();
-        return Err(format!("Vercel API error {}: {}", status, body));
-    }
-
-    let json: OpenAIGenerationResponse = res
-        .json()
-        .await
-        .map_err(|e| format!("Failed to parse Vercel response: {}", e))?;
-
-    let images: Vec<String> = json.data.into_iter().map(|d| d.b64_json).collect();
-    if images.is_empty() {
-        return Err("Vercel returned no image data.".to_string());
-    }
-    Ok(images)
-}
 
 // ---------------------------------------------------------------------------
 // Icon build helpers (.iconset → .icns via sips + iconutil)
@@ -724,6 +683,206 @@ async fn build_icns(
 // ---------------------------------------------------------------------------
 // Tauri commands
 // ---------------------------------------------------------------------------
+
+
+// ---------------------------------------------------------------------------
+// fal.ai API interaction (queue-based)
+// ---------------------------------------------------------------------------
+
+use std::time::Duration;
+
+#[derive(Deserialize)]
+struct FalSubmitResponse {
+    request_id: String,
+}
+
+#[derive(Deserialize)]
+struct FalStatusResponse {
+    status: String,
+}
+
+#[derive(Deserialize)]
+struct FalResultResponse {
+    images: Option<Vec<FalResultImage>>,
+}
+
+#[derive(Deserialize)]
+struct FalResultImage {
+    url: String,
+}
+
+/// Submit to fal.ai queue, poll until done, return base64 encoded images.
+async fn fal_generate(
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+    reference_b64: Option<&str>,
+) -> Result<Vec<String>, String> {
+    let client = reqwest::Client::new();
+    let base = "https://queue.fal.run";
+
+    // Determine endpoint
+    let endpoint = if reference_b64.is_some() {
+        format!("{}/edit", model)
+    } else {
+        model.to_string()
+    };
+    let submit_url = format!("{}/{}", base, endpoint);
+
+    // Build request body
+    let body = if let Some(ref_b64) = reference_b64 {
+        // Upload the reference image first, or use data URL: fal.ai accepts data URLs
+        serde_json::json!({
+            "prompt": prompt,
+            "image_url": format!("data:image/png;base64,{}", ref_b64)
+        })
+    } else {
+        serde_json::json!({
+            "prompt": prompt
+        })
+    };
+
+    // Submit the request
+    let submit_res = client
+        .post(&submit_url)
+        .header("Authorization", format!("Key {}", api_key))
+        .header("Content-Type", "application/json")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("fal.ai network error: {}", e))?;
+
+    if !submit_res.status().is_success() {
+        let status = submit_res.status();
+        let body = submit_res.text().await.unwrap_or_default();
+        return Err(format!("fal.ai API error {}: {}", status, body));
+    }
+
+    let submit_json: FalSubmitResponse = submit_res
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse fal.ai submit response: {}", e))?;
+
+    let request_id = submit_json.request_id;
+    let status_url = format!("{}/{}/requests/{}/status", base, endpoint, request_id);
+    let result_url = format!("{}/{}/requests/{}", base, endpoint, request_id);
+
+    // Poll for status
+    let max_attempts = 120; // ~2 minutes max
+    for attempt in 0..max_attempts {
+        tokio::time::sleep(Duration::from_millis(1000)).await;
+
+        let status_res = client
+            .get(&status_url)
+            .header("Authorization", format!("Key {}", api_key))
+            .send()
+            .await
+            .map_err(|e| format!("fal.ai status poll error: {}", e))?;
+
+        let poll_status = status_res.status();
+        if !poll_status.is_success() {
+            let body = status_res.text().await.unwrap_or_default();
+            return Err(format!("fal.ai status error {}: {}", poll_status, body));
+        }
+
+        let status_json: FalStatusResponse = status_res
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse fal.ai status: {}", e))?;
+
+        match status_json.status.as_str() {
+            "COMPLETED" => {
+                // Fetch result
+                let result_res = client
+                    .get(&result_url)
+                    .header("Authorization", format!("Key {}", api_key))
+                    .send()
+                    .await
+                    .map_err(|e| format!("fal.ai result fetch error: {}", e))?;
+
+                let result_status = result_res.status();
+                if !result_status.is_success() {
+                    let body = result_res.text().await.unwrap_or_default();
+                    return Err(format!("fal.ai result error {}: {}", result_status, body));
+                }
+
+                let result_json: FalResultResponse = result_res
+                    .json()
+                    .await
+                    .map_err(|e| format!("Failed to parse fal.ai result: {}", e))?;
+
+                if let Some(images) = result_json.images {
+                    if images.is_empty() {
+                        return Err("fal.ai returned no images.".to_string());
+                    }
+                    // Download each image and convert to base64
+                    let mut results = Vec::new();
+                    for img in &images {
+                        let img_res = client
+                            .get(&img.url)
+                            .send()
+                            .await
+                            .map_err(|e| format!("Failed to download fal.ai image: {}", e))?;
+                        let img_bytes = img_res
+                            .bytes()
+                            .await
+                            .map_err(|e| format!("Failed to read fal.ai image: {}", e))?;
+                        let b64 = base64::engine::general_purpose::STANDARD.encode(&img_bytes);
+                        results.push(b64);
+                    }
+                    return Ok(results);
+                }
+                return Err("fal.ai returned no images.".to_string());
+            }
+            "FAILED" => {
+                return Err(format!("fal.ai request {} failed", request_id));
+            }
+            _ => {
+                // IN_QUEUE or IN_PROGRESS — keep polling
+                if attempt == max_attempts - 1 {
+                    return Err("fal.ai request timed out.".to_string());
+                }
+            }
+        }
+    }
+
+    Err("fal.ai request timed out.".to_string())
+}
+
+/// Generate images via fal.ai. Makes parallel requests for multiple images.
+async fn fal_generate_images(
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+    reference_b64: Option<&str>,
+    count: u32,
+) -> Result<Vec<String>, String> {
+    let mut handles = Vec::new();
+    for _ in 0..count.min(3) {
+        let api_key = api_key.to_string();
+        let model = model.to_string();
+        let prompt = prompt.to_string();
+        let ref_b64 = reference_b64.map(|s| s.to_string());
+
+        handles.push(tokio::spawn(async move {
+            fal_generate(&api_key, &model, &prompt, ref_b64.as_deref()).await
+        }));
+    }
+
+    let mut images = Vec::new();
+    for h in handles {
+        match h.await {
+            Ok(Ok(mut imgs)) => images.append(&mut imgs),
+            Ok(Err(e)) => return Err(e),
+            Err(e) => return Err(format!("Task failed: {}", e)),
+        }
+    }
+
+    if images.is_empty() {
+        return Err("fal.ai returned no image data.".to_string());
+    }
+    Ok(images)
+}
 
 #[tauri::command]
 fn set_openai_api_key(
@@ -803,6 +962,48 @@ fn get_stored_gemini_api_key(state: State<AppState>) -> Result<StoredApiKey, Str
     })
 }
 
+
+// ---------------------------------------------------------------------------
+// fal.ai API key management
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+fn set_fal_api_key(
+    api_key: String,
+    app: tauri::AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let trimmed = api_key.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("API key cannot be empty.".to_string());
+    }
+    if let Ok(store) = app.store(STORE_FILE) {
+        store.set(FAL_API_KEY_KEY, serde_json::Value::String(trimmed.clone()));
+        let _ = store.save();
+    }
+    let mut key = state.fal_api_key.lock().map_err(|e| e.to_string())?;
+    *key = trimmed;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_fal_api_key_status(state: State<AppState>) -> Result<ApiKeyStatus, String> {
+    let key = state.fal_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(ApiKeyStatus {
+        key_required: true,
+        has_key: !key.is_empty(),
+    })
+}
+
+#[tauri::command]
+fn get_stored_fal_api_key(state: State<AppState>) -> Result<StoredApiKey, String> {
+    let key = state.fal_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(StoredApiKey {
+        api_key: key.clone(),
+    })
+}
+
+
 // ---------------------------------------------------------------------------
 // OpenRouter API key management
 #[tauri::command]
@@ -867,6 +1068,7 @@ async fn generate_icon(
         match provider.as_str() {
             "gemini" => "gemini-2.5-flash-image",
             "openrouter" => "google/gemini-2.5-flash-image",
+            "fal" => "fal-ai/nano-banana",
             _ => "gpt-image-1",
         }
     } else {
@@ -874,6 +1076,24 @@ async fn generate_icon(
     };
 
     match provider.as_str() {
+        "fal" => {
+            let api_key = {
+                let key = state.fal_api_key.lock().map_err(|e| e.to_string())?;
+                if key.is_empty() {
+                    return Err("No fal.ai API key. Add one in the settings.".to_string());
+                }
+                key.clone()
+            };
+
+            let reference_b64 = if reference_image.is_empty() {
+                None
+            } else {
+                Some(reference_image.as_str())
+            };
+
+            let images = fal_generate_images(&api_key, model_name, &full_prompt, reference_b64, 3).await?;
+            Ok(GenerateIconResponse { images })
+        }
         "openrouter" => {
             let api_key = {
                 let key = state.openrouter_api_key.lock().map_err(|e| e.to_string())?;
@@ -1030,6 +1250,7 @@ pub fn run() {
             openai_api_key: Mutex::new(String::new()),
             gemini_api_key: Mutex::new(String::new()),
             openrouter_api_key: Mutex::new(String::new()),
+            fal_api_key: Mutex::new(String::new()),
             has_unsaved_icon: Mutex::new(false),
         })
         .setup(|app| {
@@ -1048,6 +1269,15 @@ pub fn run() {
                     if let Some(key_str) = val.as_str() {
                         let state = app.state::<AppState>();
                         if let Ok(mut key) = state.gemini_api_key.lock() {
+                            *key = key_str.to_string();
+                        };
+                    }
+                }
+                // Load fal.ai API key
+                if let Some(val) = store.get(FAL_API_KEY_KEY) {
+                    if let Some(key_str) = val.as_str() {
+                        let state = app.state::<AppState>();
+                        if let Ok(mut key) = state.fal_api_key.lock() {
                             *key = key_str.to_string();
                         };
                     }
@@ -1084,6 +1314,9 @@ pub fn run() {
             set_gemini_api_key,
             get_gemini_api_key_status,
             get_stored_gemini_api_key,
+            set_fal_api_key,
+            get_fal_api_key_status,
+            get_stored_fal_api_key,
             set_openrouter_api_key,
             get_openrouter_api_key_status,
             get_stored_openrouter_api_key,

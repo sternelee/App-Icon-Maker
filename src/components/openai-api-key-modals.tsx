@@ -11,7 +11,7 @@ import {
 
 export type OpenAIApiKeyManageReason = "settings" | "authError";
 
-export type Provider = "openai" | "gemini" | "openrouter";
+export type Provider = "openai" | "gemini" | "openrouter" | "fal";
 
 const PROVIDER_CONFIG: Record<
   Provider,
@@ -39,6 +39,14 @@ const PROVIDER_CONFIG: Record<
     helpUrl: "https://aistudio.google.com/app/apikey",
     getKeyCmd: "get_stored_gemini_api_key",
     setKeyCmd: "set_gemini_api_key",
+  },
+  fal: {
+    label: "fal.ai",
+    keyLabel: "fal.ai API key",
+    placeholder: "…",
+    helpUrl: "https://fal.ai/dashboard/api-keys",
+    getKeyCmd: "get_stored_fal_api_key",
+    setKeyCmd: "set_fal_api_key",
   },
   openrouter: {
     label: "OpenRouter",
@@ -88,7 +96,7 @@ function ProviderSelect({
         <SelectValue placeholder="Select provider" />
       </SelectTrigger>
       <SelectContent>
-        {(["openai", "gemini", "openrouter"] as Provider[]).map(
+        {(["openai", "gemini", "openrouter", "fal"] as Provider[]).map(
           (p) => (
             <SelectItem key={p} value={p}>
               {PROVIDER_CONFIG[p].label}
