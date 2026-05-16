@@ -28,14 +28,14 @@
     },
     "src/components/openai-api-key-modals.tsx": {
       "latest": {
-        "commit": "2e7dc80",
-        "timestamp": "2026-05-15T08:16:35.682Z",
-        "mi": 20.7,
-        "cognitive": 48,
+        "commit": "5d04701",
+        "timestamp": "2026-05-16T04:19:43.821Z",
+        "mi": 20.2,
+        "cognitive": 43,
         "nesting": 3,
-        "lines": 329,
+        "lines": 345,
         "maxCyclomatic": 13,
-        "entropy": 6.46
+        "entropy": 6.37
       },
       "history": [
         {
@@ -57,6 +57,16 @@
           "lines": 329,
           "maxCyclomatic": 13,
           "entropy": 6.46
+        },
+        {
+          "commit": "5d04701",
+          "timestamp": "2026-05-16T04:19:43.821Z",
+          "mi": 20.2,
+          "cognitive": 43,
+          "nesting": 3,
+          "lines": 345,
+          "maxCyclomatic": 13,
+          "entropy": 6.37
         }
       ],
       "trend": "regressing"
@@ -247,5 +257,5 @@
       "trend": "stable"
     }
   },
-  "capturedAt": "2026-05-15T08:16:40.683Z"
+  "capturedAt": "2026-05-16T04:19:48.822Z"
 }

@@ -36,8 +36,6 @@ function getDefaultModel(provider: Provider): string {
 			return "gemini-2.5-flash-image";
 		case "openrouter":
 			return "openai/gpt-5-image";
-		case "vercel":
-			return "openai/gpt-image-1";
 		default:
 			return "gpt-image-1";
 	}
@@ -303,27 +301,6 @@ export function AppContent() {
 								<SelectItem value="gemini-3.1-flash-image-preview">
 									Nano Banana 2
 								</SelectItem>
-							</SelectGroup>
-						)}
-						{provider === "vercel" && (
-							<SelectGroup>
-								<SelectItem value="google/gemini-3.1-flash-image-preview">
-									Nano Banana 2
-								</SelectItem>
-								<SelectItem value="google/gemini-3-pro-image">
-									Nano Banana Pro
-								</SelectItem>
-								<SelectItem value="google/gemini-2.5-flash-image">
-									Nano Banana
-								</SelectItem>
-								<SelectItem value="openai/gpt-image-2">gpt-image-2</SelectItem>
-								<SelectItem value="openai/gpt-image-1.5">
-									gpt-image-1.5
-								</SelectItem>
-								<SelectItem value="openai/gpt-image-1-mini">
-									gpt-image-1-mini
-								</SelectItem>
-								<SelectItem value="openai/gpt-image-1">gpt-image-1</SelectItem>
 							</SelectGroup>
 						)}
 						{provider === "openrouter" && (
