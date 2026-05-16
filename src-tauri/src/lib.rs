@@ -722,7 +722,7 @@ async fn fal_generate(
     let base = "https://queue.fal.run";
 
     // Determine submit and status endpoints
-    let submit_endpoint = if reference_b64.is_some() {
+    let submit_endpoint = if reference_b64.is_some() && !model.ends_with("/edit") {
         format!("{}/edit", model)
     } else {
         model.to_string()
