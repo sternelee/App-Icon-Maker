@@ -8,11 +8,6 @@
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js"
-    },
-    {
-      "type": "file",
       "name": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js",
       "file": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js"
     },
@@ -23,13 +18,18 @@
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js"
+      "name": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js"
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js"
+      "name": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js"
     },
     {
       "type": "file",
@@ -119,12 +119,6 @@
     },
     {
       "type": "export",
-      "name": "SelectSeparator",
-      "file": "src/components/ui/select.tsx",
-      "line": 199
-    },
-    {
-      "type": "export",
       "name": "PipelineStatus",
       "file": "src/lib/icon-pipeline.ts",
       "line": 5
@@ -163,12 +157,6 @@
     },
     {
       "type": "export",
-      "name": "SelectSeparator",
-      "file": "src/components/ui/select.tsx",
-      "line": 199
-    },
-    {
-      "type": "export",
       "name": "PipelineStatus",
       "file": "src/lib/icon-pipeline.ts",
       "line": 5
@@ -188,11 +176,6 @@
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js"
-    },
-    {
-      "type": "file",
       "name": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js",
       "file": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js"
     },
@@ -203,13 +186,18 @@
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js"
+      "name": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js"
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js"
+      "name": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js"
     },
     {
       "type": "file",
@@ -277,5 +265,5 @@
     }
   ],
   "unlistedDeps": [],
-  "summary": "Found 24 issues"
+  "summary": "Found 23 issues"
 }

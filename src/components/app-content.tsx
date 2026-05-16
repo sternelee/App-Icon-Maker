@@ -14,6 +14,7 @@ import {
 	SelectGroup,
 	SelectItem,
 	SelectTrigger,
+	SelectSeparator,
 	SelectValue,
 } from "@/components/ui/select";
 import { PromptInput, type PrimaryAction } from "@/components/prompt-input";
@@ -59,6 +60,8 @@ export function AppContent() {
 	const [openAIApiKeyStartupOpen, setOpenAIApiKeyStartupOpen] = useState(false);
 	const [provider, setProvider] = useState<Provider>("openai");
 	const [model, setModel] = useState("gpt-image-1");
+	const [falCustom, setFalCustom] = useState(false);
+	const [falInput, setFalInput] = useState("");
 	const [openAIApiKeyManageReason, setOpenAIApiKeyManageReason] =
 		useState<OpenAIApiKeyManageReason | null>(null);
 	const resumeAfterCancelRef = useRef<ResumeAfterCancel>("idle");
@@ -279,7 +282,18 @@ export function AppContent() {
 				{/* Model selector — changes by provider set in settings. */}
 				<Select
 					value={model}
-					onValueChange={(v) => v && setModel(v)}
+					onValueChange={(v) => {
+					if (!v) return;
+					if (provider === "fal" && v === "__custom__") {
+						setFalCustom(true);
+						const saved = localStorage.getItem("fal_custom_model") || "";
+						setFalInput(saved);
+						if (saved) setModel(saved);
+					} else {
+						setFalCustom(false);
+						setModel(v);
+					}
+				}}
 					disabled={iconState === "generating"}
 				>
 					<SelectTrigger className="h-8 text-xs">
@@ -305,14 +319,36 @@ export function AppContent() {
 								</SelectItem>
 							</SelectGroup>
 						)}
-						{provider === "fal" && (
+						{provider === "fal" && !falCustom && (
+							<SelectGroup>
+								<SelectItem value="fal-ai/nano-banana-2/edit">Nano Banana 2</SelectItem>
+								<SelectItem value="fal-ai/nano-banana-pro/edit">Nano Banana Pro</SelectItem>
+								<SelectItem value="fal-ai/nano-banana/edit">Nano Banana</SelectItem>
+								<SelectItem value="openai/gpt-image-2/edit">gpt-image-2</SelectItem>
+								<SelectItem value="openai/gpt-image-1.5/edit">gpt-image-1.5</SelectItem>
+								<SelectItem value="fal-ai/flux-2-pro/edit">Flux 2 Pro</SelectItem>
+								<SelectItem value="fal-ai/flux-pro/kontext">Flux Pro Kontext</SelectItem>
+								<SelectItem value="fal-ai/bytedance/seedream/v5/lite/edit">Seedream v5 Lite</SelectItem>
+								<SelectItem value="fal-ai/bytedance/seedream/v4.5/edit">Seedream v4.5</SelectItem>
+								<SelectItem value="fal-ai/gemini-3-pro-image-preview/edit">Nano Banana Pro (Gemini)</SelectItem>
+								<SelectItem value="fal-ai/gemini-25-flash-image/edit">Nano Banana (Gemini)</SelectItem>
+								<SelectItem value="fal-ai/qwen-image-edit-2511">Qwen Image Edit</SelectItem>
+							<SelectSeparator />
+							<SelectItem value="__custom__">Custom…</SelectItem>
+							</SelectGroup>
+						)}
+						{provider === "fal" && falCustom && (
 							<div className="flex items-center">
 								<input
 									type="text"
-									value={model}
-									onChange={(e) => setModel(e.target.value)}
+									value={falInput}
+									onChange={(e) => {
+										setFalInput(e.target.value);
+										setModel(e.target.value);
+										localStorage.setItem("fal_custom_model", e.target.value);
+									}}
 									disabled={iconState === "generating"}
-									placeholder="fal-ai/nano-banana-2/edit"
+									placeholder="fal-ai/your-model/edit"
 									className="flex h-8 w-[260px] rounded-md border border-input bg-background px-3 py-1 text-xs font-mono ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 								/>
 							</div>
