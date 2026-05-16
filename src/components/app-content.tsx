@@ -62,6 +62,16 @@ export function AppContent() {
 	const [model, setModel] = useState("gpt-image-1");
 	const [falCustom, setFalCustom] = useState(false);
 	const [falInput, setFalInput] = useState("");
+	const [falCustomModels, setFalCustomModels] = useState<string[]>(
+		() => {
+			try {
+				const saved = localStorage.getItem("fal_custom_models");
+				return saved ? JSON.parse(saved) : [];
+			} catch {
+				return [];
+			}
+		},
+	);
 	const [openAIApiKeyManageReason, setOpenAIApiKeyManageReason] =
 		useState<OpenAIApiKeyManageReason | null>(null);
 	const resumeAfterCancelRef = useRef<ResumeAfterCancel>("idle");
@@ -291,6 +301,17 @@ export function AppContent() {
                 setModel(e.target.value);
                 localStorage.setItem("fal_custom_model", e.target.value);
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && falInput.trim()) {
+                  const trimmed = falInput.trim();
+                  if (!falCustomModels.includes(trimmed)) {
+                    const next = [...falCustomModels, trimmed];
+                    setFalCustomModels(next);
+                    localStorage.setItem("fal_custom_models", JSON.stringify(next));
+                  }
+                  setFalCustom(false);
+                }
+              }}
               disabled={iconState === "generating"}
               placeholder="fal-ai/your-model/edit"
               className="flex h-8 w-[260px] rounded-md border border-input bg-background px-3 py-1 text-xs font-mono ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -344,6 +365,14 @@ export function AppContent() {
                   <SelectItem value="fal-ai/gemini-3-pro-image-preview/edit">Nano Banana Pro (Gemini)</SelectItem>
                   <SelectItem value="fal-ai/gemini-25-flash-image/edit">Nano Banana (Gemini)</SelectItem>
                   <SelectItem value="fal-ai/qwen-image-edit-2511">Qwen Image Edit</SelectItem>
+                  {falCustomModels.length > 0 && (
+                    <>
+                      <SelectSeparator />
+                      {falCustomModels.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </>
+                  )}
                   <SelectSeparator />
                   <SelectItem value="__custom__">Custom…</SelectItem>
                 </SelectGroup>
