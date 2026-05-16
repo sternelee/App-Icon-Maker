@@ -728,15 +728,14 @@ async fn fal_generate(
         model.to_string()
     };
     let submit_url = format!("{}/{}", base, submit_endpoint);
-    // Status/result URLs use the base model path (without /edit suffix)
-    let model_base = model.to_string();
+    // Status/result URLs use global /requests/{id} (no model prefix needed)
 
     // Build request body
     let body = if let Some(ref_b64) = reference_b64 {
         // Upload the reference image first, or use data URL: fal.ai accepts data URLs
         serde_json::json!({
             "prompt": prompt,
-            "image_url": format!("data:image/png;base64,{}", ref_b64)
+            "image_urls": [format!("data:image/png;base64,{}", ref_b64)]
         })
     } else {
         serde_json::json!({
@@ -766,8 +765,13 @@ async fn fal_generate(
         .map_err(|e| format!("Failed to parse fal.ai submit response: {}", e))?;
 
     let request_id = submit_json.request_id;
-    let status_url = format!("{}/{}/requests/{}/status", base, model_base, request_id);
-    let result_url = format!("{}/{}/requests/{}", base, model_base, request_id);
+    // fal.ai uses global /requests/{id} for status and result (without model prefix)
+    let status_url = format!("{}/requests/{}/status", base, request_id);
+    let result_url = format!("{}/requests/{}", base, request_id);
+
+    eprintln!("[fal.ai] Submit: {}", submit_url);
+    eprintln!("[fal.ai] Status: {}", status_url);
+    eprintln!("[fal.ai] Result: {}", result_url);
 
     // Poll for status
     let max_attempts = 120; // ~2 minutes max
