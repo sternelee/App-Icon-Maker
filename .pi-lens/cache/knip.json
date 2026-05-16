@@ -18,11 +18,6 @@
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js"
-    },
-    {
-      "type": "file",
       "name": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js",
       "file": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js"
     },
@@ -30,6 +25,11 @@
       "type": "file",
       "name": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js",
       "file": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js"
     },
     {
       "type": "file",
@@ -186,11 +186,6 @@
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js"
-    },
-    {
-      "type": "file",
       "name": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js",
       "file": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js"
     },
@@ -198,6 +193,11 @@
       "type": "file",
       "name": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js",
       "file": "src-tauri/target/debug/build/app-icon-maker-f1307b6377764fe5/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-936a9d7ab24cd0aa/out/__global-api-script.js"
     },
     {
       "type": "file",
