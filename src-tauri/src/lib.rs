@@ -621,6 +621,7 @@ async fn openrouter_edit_images(
 // Icon build helpers (.iconset → .icns via sips + iconutil)
 // ---------------------------------------------------------------------------
 
+#[cfg(target_os = "macos")]
 fn run_command(cmd: &str, args: &[&str]) -> Result<(), String> {
     let output = std::process::Command::new(cmd)
         .args(args)
@@ -633,6 +634,7 @@ fn run_command(cmd: &str, args: &[&str]) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
 async fn build_icns(
     image_data: Vec<u8>,
     iconset_dir: &std::path::Path,
@@ -1169,10 +1171,16 @@ async fn save_icon(
     let (filter_name, extensions, default_name) = match format.as_str() {
         "png" => ("PNG image", vec!["png"], "app.png"),
         "jpeg" => ("JPEG image", vec!["jpg", "jpeg"], "app.jpg"),
-        _ => ("macOS icon", vec!["icns"], "app.icns"),
+        _ => {
+            let filter_name = if cfg!(target_os = "macos") { "macOS icon" } else { "PNG image" };
+            let extensions: Vec<&str> = if cfg!(target_os = "macos") { vec!["icns"] } else { vec!["png"] };
+            let default_name = if cfg!(target_os = "macos") { "app.icns" } else { "app.png" };
+            (filter_name, extensions, default_name)
+        },
     };
 
-    let desktop_path = dirs::desktop_dir()
+    #[allow(unused_mut)]
+    let mut desktop_path = dirs::desktop_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
         .join(default_name);
 
@@ -1203,24 +1211,32 @@ async fn save_icon(
                     })
                 }
                 "jpeg" => {
-                    // Write as temporary PNG first, then convert with sips
-                    let tmp = std::env::temp_dir().join(format!("iconmaker-save-{}", std::process::id()));
-                    let tmp_png = tmp.join("tmp.png");
-                    std::fs::create_dir_all(&tmp).map_err(|e| format!("Failed to create temp dir: {}", e))?;
-                    std::fs::write(&tmp_png, &image_data)
-                        .map_err(|e| format!("Failed to write temp PNG: {}", e))?;
-                    run_command(
-                        "sips",
-                        &[
-                            "-s",
-                            "format",
-                            "jpeg",
-                            tmp_png.to_str().unwrap(),
-                            "--out",
-                            pb.to_str().unwrap(),
-                        ],
-                    )?;
-                    let _ = std::fs::remove_dir_all(&tmp);
+                    #[cfg(target_os = "macos")]
+                    {
+                        // Convert PNG to JPEG using sips
+                        let tmp = std::env::temp_dir().join(format!("iconmaker-save-{}", std::process::id()));
+                        let tmp_png = tmp.join("tmp.png");
+                        std::fs::create_dir_all(&tmp).map_err(|e| format!("Failed to create temp dir: {}", e))?;
+                        std::fs::write(&tmp_png, &image_data)
+                            .map_err(|e| format!("Failed to write temp PNG: {}", e))?;
+                        run_command(
+                            "sips",
+                            &[
+                                "-s",
+                                "format",
+                                "jpeg",
+                                tmp_png.to_str().unwrap(),
+                                "--out",
+                                pb.to_str().unwrap(),
+                            ],
+                        )?;
+                        let _ = std::fs::remove_dir_all(&tmp);
+                    }
+                    #[cfg(not(target_os = "macos"))]
+                    {
+                        std::fs::write(&pb, &image_data)
+                            .map_err(|e| format!("Failed to write: {}", e))?;
+                    }
                     Ok(SaveIconResponse {
                         saved_path: parent_dir.to_string_lossy().to_string(),
                         canceled: false,
@@ -1228,10 +1244,19 @@ async fn save_icon(
                     })
                 }
                 _ => {
-                    let file_stem = pb.file_stem().and_then(|s| s.to_str()).unwrap_or("App");
-                    let iconset_dir = parent_dir.join(format!("{}.iconset", file_stem));
-                    let icns_path = parent_dir.join(format!("{}.icns", file_stem));
-                    build_icns(image_data, &iconset_dir, &icns_path).await?;
+                    let mut icns_path = pb.clone();
+                    #[cfg(target_os = "macos")]
+                    {
+                        let file_stem = pb.file_stem().and_then(|s| s.to_str()).unwrap_or("App");
+                        let iconset_dir = parent_dir.join(format!("{}.iconset", file_stem));
+                        icns_path = parent_dir.join(format!("{}.icns", file_stem));
+                        build_icns(image_data, &iconset_dir, &icns_path).await?;
+                    }
+                    #[cfg(not(target_os = "macos"))]
+                    {
+                        std::fs::write(&pb, &image_data)
+                            .map_err(|e| format!("Failed to write PNG: {}", e))?;
+                    }
                     Ok(SaveIconResponse {
                         saved_path: parent_dir.to_string_lossy().to_string(),
                         canceled: false,
@@ -1249,13 +1274,17 @@ async fn save_icon(
 }
 
 #[tauri::command]
-fn show_path_in_finder(path: String) -> Result<(), String> {
-    run_command("open", &["-R", &path])
+async fn show_path_in_finder(app_handle: tauri::AppHandle, path: String) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    app_handle.opener().reveal_item_in_dir(&path)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn open_external_url(url: String) -> Result<(), String> {
-    run_command("open", &[&url])
+async fn open_external_url(app_handle: tauri::AppHandle, url: String) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    app_handle.opener().open_url(&url, None::<&str>)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
