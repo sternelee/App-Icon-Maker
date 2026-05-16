@@ -694,6 +694,8 @@ use std::time::Duration;
 #[derive(Deserialize)]
 struct FalSubmitResponse {
     request_id: String,
+    #[serde(default)]
+    status_url: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -765,10 +767,14 @@ async fn fal_generate(
         .map_err(|e| format!("Failed to parse fal.ai submit response: {}", e))?;
 
     let request_id = submit_json.request_id;
-    // fal.ai uses global /requests/{id} for status and result (without model prefix)
-    let status_url = format!("{}/requests/{}/status", base, request_id);
-    let result_url = format!("{}/requests/{}", base, request_id);
+    // fal.ai status/result URLs: prefer status_url from response, fallback to app-name-based URL
+    let app_name = model.strip_suffix("/edit").unwrap_or(model);
+    let status_url = submit_json.status_url.unwrap_or_else(|| {
+        format!("{}/{}/requests/{}/status", base, app_name, request_id)
+    });
+    let result_url = format!("{}/{}/requests/{}", base, app_name, request_id);
 
+    eprintln!("[fal.ai] App: {}", app_name);
     eprintln!("[fal.ai] Submit: {}", submit_url);
     eprintln!("[fal.ai] Status: {}", status_url);
     eprintln!("[fal.ai] Result: {}", result_url);
