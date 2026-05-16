@@ -721,13 +721,15 @@ async fn fal_generate(
     let client = reqwest::Client::new();
     let base = "https://queue.fal.run";
 
-    // Determine endpoint
-    let endpoint = if reference_b64.is_some() {
+    // Determine submit and status endpoints
+    let submit_endpoint = if reference_b64.is_some() {
         format!("{}/edit", model)
     } else {
         model.to_string()
     };
-    let submit_url = format!("{}/{}", base, endpoint);
+    let submit_url = format!("{}/{}", base, submit_endpoint);
+    // Status/result URLs use the base model path (without /edit suffix)
+    let model_base = model.to_string();
 
     // Build request body
     let body = if let Some(ref_b64) = reference_b64 {
@@ -764,8 +766,8 @@ async fn fal_generate(
         .map_err(|e| format!("Failed to parse fal.ai submit response: {}", e))?;
 
     let request_id = submit_json.request_id;
-    let status_url = format!("{}/{}/requests/{}/status", base, endpoint, request_id);
-    let result_url = format!("{}/{}/requests/{}", base, endpoint, request_id);
+    let status_url = format!("{}/{}/requests/{}/status", base, model_base, request_id);
+    let result_url = format!("{}/{}/requests/{}", base, model_base, request_id);
 
     // Poll for status
     let max_attempts = 120; // ~2 minutes max
