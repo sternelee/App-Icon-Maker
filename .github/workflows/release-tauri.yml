@@ -1,0 +1,64 @@
+name: Release Tauri App
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install Linux system dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and publish Tauri app
+        uses: tauri-apps/tauri-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: App Icon Maker ${{ github.ref_name }}
+          releaseBody: Automated release for ${{ github.ref_name }}
+          releaseDraft: false
+          prerelease: false
