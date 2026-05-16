@@ -36,6 +36,8 @@ function getDefaultModel(provider: Provider): string {
 			return "gemini-2.5-flash-image";
 		case "openrouter":
 			return "openai/gpt-5-image";
+		case "fal":
+			return "fal-ai/nano-banana-2/edit";
 		default:
 			return "gpt-image-1";
 	}
@@ -302,6 +304,18 @@ export function AppContent() {
 									Nano Banana 2
 								</SelectItem>
 							</SelectGroup>
+						)}
+						{provider === "fal" && (
+							<div className="flex items-center">
+								<input
+									type="text"
+									value={model}
+									onChange={(e) => setModel(e.target.value)}
+									disabled={iconState === "generating"}
+									placeholder="fal-ai/nano-banana-2/edit"
+									className="flex h-8 w-[260px] rounded-md border border-input bg-background px-3 py-1 text-xs font-mono ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+								/>
+							</div>
 						)}
 						{provider === "openrouter" && (
 							<SelectGroup>

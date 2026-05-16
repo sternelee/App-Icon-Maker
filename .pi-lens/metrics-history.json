@@ -98,14 +98,14 @@
     },
     "src/components/app-content.tsx": {
       "latest": {
-        "commit": "800c24c",
-        "timestamp": "2026-05-15T08:02:21.899Z",
-        "mi": 15.4,
-        "cognitive": 155,
+        "commit": "2d80507",
+        "timestamp": "2026-05-16T04:33:39.387Z",
+        "mi": 18.9,
+        "cognitive": 123,
         "nesting": 4,
-        "lines": 446,
-        "maxCyclomatic": 177,
-        "entropy": 6.01
+        "lines": 345,
+        "maxCyclomatic": 114,
+        "entropy": 6.45
       },
       "history": [
         {
@@ -127,6 +127,16 @@
           "lines": 446,
           "maxCyclomatic": 177,
           "entropy": 6.01
+        },
+        {
+          "commit": "2d80507",
+          "timestamp": "2026-05-16T04:33:39.387Z",
+          "mi": 18.9,
+          "cognitive": 123,
+          "nesting": 4,
+          "lines": 345,
+          "maxCyclomatic": 114,
+          "entropy": 6.45
         }
       ],
       "trend": "regressing"
@@ -257,5 +267,5 @@
       "trend": "stable"
     }
   },
-  "capturedAt": "2026-05-16T04:19:48.822Z"
+  "capturedAt": "2026-05-16T04:33:44.389Z"
 }
