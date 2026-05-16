@@ -3,24 +3,24 @@ import { Download } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { MacOSIcon } from "@/components/macos-icon";
 import {
-  OpenAIApiKeyManageModal,
-  OpenAIApiKeyStartupModal,
-  type OpenAIApiKeyManageReason,
-  type Provider,
+	OpenAIApiKeyManageModal,
+	OpenAIApiKeyStartupModal,
+	type OpenAIApiKeyManageReason,
+	type Provider,
 } from "@/components/openai-api-key-modals";
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectSeparator,
-  SelectValue,
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectSeparator,
+	SelectValue,
 } from "@/components/ui/select";
 import { PromptInput, type PrimaryAction } from "@/components/prompt-input";
 import {
-  ErrorModal,
-  generationErrorSuggestsApiKeyIssue,
+	ErrorModal,
+	generationErrorSuggestsApiKeyIssue,
 } from "@/components/error-modal";
 import { SaveSuccessModal } from "@/components/save-success-modal";
 import { SquircleClipDefs } from "@/components/squircle-clip-defs";
@@ -32,458 +32,466 @@ import { cn } from "@/lib/utils";
 type ResumeAfterCancel = "idle" | "generated" | "refine";
 
 function getDefaultModel(provider: Provider): string {
-  switch (provider) {
-    case "gemini":
-      return "gemini-2.5-flash-image";
-    case "openrouter":
-      return "openai/gpt-5-image";
-    case "fal":
-      return "fal-ai/nano-banana-2/edit";
-    default:
-      return "gpt-image-1";
-  }
+	switch (provider) {
+		case "gemini":
+			return "gemini-2.5-flash-image";
+		case "openrouter":
+			return "openai/gpt-5-image";
+		case "fal":
+			return "fal-ai/nano-banana-2/edit";
+		default:
+			return "gpt-image-1";
+	}
 }
 
 export function AppContent() {
-  const [iconState, setIconState] = useState<IconState>("idle");
-  const [prompt, setPrompt] = useState("");
-  const [attachments, setAttachments] = useState<string[]>([]);
-  const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
-  const [baseIconSrc, setBaseIconSrc] = useState<string | null>(null);
-  const [rawBaseIconSrc, setRawBaseIconSrc] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState<{
-    folderPath: string;
-    icnsPath: string;
-  } | null>(null);
-  const [iconDirty, setIconDirty] = useState(false);
-  const [openAIApiKeyStartupOpen, setOpenAIApiKeyStartupOpen] = useState(false);
-  const [provider, setProvider] = useState<Provider>("openai");
-  const [model, setModel] = useState("gpt-image-1");
-  const [falCustom, setFalCustom] = useState(false);
-  const [falInput, setFalInput] = useState("");
-  const [openAIApiKeyManageReason, setOpenAIApiKeyManageReason] =
-    useState<OpenAIApiKeyManageReason | null>(null);
-  const resumeAfterCancelRef = useRef<ResumeAfterCancel>("idle");
+	const [iconState, setIconState] = useState<IconState>("idle");
+	const [prompt, setPrompt] = useState("");
+	const [attachments, setAttachments] = useState<string[]>([]);
+	const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
+	const [baseIconSrc, setBaseIconSrc] = useState<string | null>(null);
+	const [rawBaseIconSrc, setRawBaseIconSrc] = useState<string | null>(null);
+	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+	const [saveSuccess, setSaveSuccess] = useState<{
+		folderPath: string;
+		icnsPath: string;
+	} | null>(null);
+	const [iconDirty, setIconDirty] = useState(false);
+	const [openAIApiKeyStartupOpen, setOpenAIApiKeyStartupOpen] = useState(false);
+	const [provider, setProvider] = useState<Provider>("openai");
+	const [model, setModel] = useState("gpt-image-1");
+	const [falCustom, setFalCustom] = useState(false);
+	const [falInput, setFalInput] = useState("");
+	const [openAIApiKeyManageReason, setOpenAIApiKeyManageReason] =
+		useState<OpenAIApiKeyManageReason | null>(null);
+	const resumeAfterCancelRef = useRef<ResumeAfterCancel>("idle");
 
-  const pipeline = useIconPipeline();
-  const prevPipelineStatusRef = useRef(pipeline.status);
+	const pipeline = useIconPipeline();
+	const prevPipelineStatusRef = useRef(pipeline.status);
 
-  useEffect(() => {
-    // Check if any provider needs a key
-    invoke<{ key_required: boolean; has_key: boolean }>(
-      "get_openai_api_key_status",
-    )
-      .then((s) => {
-        if (s.key_required === true && s.has_key !== true) {
-          setOpenAIApiKeyStartupOpen(true);
-        }
-      })
-      .catch(() => {});
-  }, []);
+	useEffect(() => {
+		// Check all providers for API keys; show modal only if none have a key
+		const providers = [
+			{ cmd: "get_openai_api_key_status" },
+			{ cmd: "get_gemini_api_key_status" },
+			{ cmd: "get_openrouter_api_key_status" },
+			{ cmd: "get_fal_api_key_status" },
+		];
+		Promise.all(
+			providers.map((p) =>
+				invoke<{ key_required: boolean; has_key: boolean }>(p.cmd),
+			),
+		)
+			.then((results) => {
+				if (results.every((s) => s.has_key !== true)) {
+					setOpenAIApiKeyStartupOpen(true);
+				}
+			})
+			.catch(() => {});
+	}, []);
 
-  const clearAttachments = useCallback(() => {
-    setAttachments((prev) => {
-      for (const url of prev) URL.revokeObjectURL(url);
-      return [];
-    });
-  }, []);
+	const clearAttachments = useCallback(() => {
+		setAttachments((prev) => {
+			for (const url of prev) URL.revokeObjectURL(url);
+			return [];
+		});
+	}, []);
 
-  // Sync iconState with pipeline status changes.
-  useEffect(() => {
-    if (pipeline.status === "done") {
-      const hasAny = pipeline.variants.some((v) => v !== null);
-      setIconState(hasAny ? "generated" : "idle");
-    } else if (pipeline.status === "error") {
-      setIconState(resumeAfterCancelRef.current);
-      const raw = pipeline.progress.label;
-      setErrorMessage(raw.startsWith("Error: ") ? raw.slice(7) : raw);
-    }
-  }, [pipeline.status]); // eslint-disable-line react-hooks/exhaustive-deps
+	// Sync iconState with pipeline status changes.
+	useEffect(() => {
+		if (pipeline.status === "done") {
+			const hasAny = pipeline.variants.some((v) => v !== null);
+			setIconState(hasAny ? "generated" : "idle");
+		} else if (pipeline.status === "error") {
+			setIconState(resumeAfterCancelRef.current);
+			const raw = pipeline.progress.label;
+			setErrorMessage(raw.startsWith("Error: ") ? raw.slice(7) : raw);
+		}
+	}, [pipeline.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    const was = prevPipelineStatusRef.current;
-    prevPipelineStatusRef.current = pipeline.status;
-    if (pipeline.status !== "done") return;
-    if (!pipeline.variants.some((v) => v !== null)) return;
-    if (was !== "done") {
-      setIconDirty(true);
-    }
-  }, [pipeline.status, pipeline.variants]);
+	useEffect(() => {
+		const was = prevPipelineStatusRef.current;
+		prevPipelineStatusRef.current = pipeline.status;
+		if (pipeline.status !== "done") return;
+		if (!pipeline.variants.some((v) => v !== null)) return;
+		if (was !== "done") {
+			setIconDirty(true);
+		}
+	}, [pipeline.status, pipeline.variants]);
 
-  useEffect(() => {
-    invoke("set_unsaved_icon_state", { unsaved: iconDirty }).catch(() => {});
-  }, [iconDirty]);
+	useEffect(() => {
+		invoke("set_unsaved_icon_state", { unsaved: iconDirty }).catch(() => {});
+	}, [iconDirty]);
 
-  const startGeneration = () => {
-    if (!prompt.trim() || iconState === "generating") return;
-    resumeAfterCancelRef.current =
-      iconState === "refine"
-        ? "refine"
-        : iconState === "generated"
-          ? "generated"
-          : "idle";
-    setSelectedVariant(null);
-    setIconState("generating");
-    const referenceImage =
-      iconState === "refine" ? (baseIconSrc ?? attachments[0]) : attachments[0];
-    pipeline.generate(prompt, model, provider, referenceImage);
-  };
+	const startGeneration = () => {
+		if (!prompt.trim() || iconState === "generating") return;
+		resumeAfterCancelRef.current =
+			iconState === "refine"
+				? "refine"
+				: iconState === "generated"
+					? "generated"
+					: "idle";
+		setSelectedVariant(null);
+		setIconState("generating");
+		const referenceImage =
+			iconState === "refine" ? (baseIconSrc ?? attachments[0]) : attachments[0];
+		pipeline.generate(prompt, model, provider, referenceImage);
+	};
 
-  const stopGeneration = () => {
-    pipeline.cancel();
-    setIconState(resumeAfterCancelRef.current);
-  };
+	const stopGeneration = () => {
+		pipeline.cancel();
+		setIconState(resumeAfterCancelRef.current);
+	};
 
-  const confirmSelectedVariant = () => {
-    if (iconState !== "generated" || selectedVariant === null) return;
-    setIconDirty(true);
-    setBaseIconSrc(pipeline.variants[selectedVariant]);
-    setRawBaseIconSrc(pipeline.rawVariants[selectedVariant]);
-    setIconState("refine");
-    setSelectedVariant(null);
-    setPrompt("");
-    clearAttachments();
-  };
+	const confirmSelectedVariant = () => {
+		if (iconState !== "generated" || selectedVariant === null) return;
+		setIconDirty(true);
+		setBaseIconSrc(pipeline.variants[selectedVariant]);
+		setRawBaseIconSrc(pipeline.rawVariants[selectedVariant]);
+		setIconState("refine");
+		setSelectedVariant(null);
+		setPrompt("");
+		clearAttachments();
+	};
 
-  const handleSave = async (format: string) => {
-    const rawSrc =
-      iconState === "refine"
-        ? rawBaseIconSrc
-        : selectedVariant !== null
-          ? pipeline.rawVariants[selectedVariant]
-          : null;
-    if (!rawSrc) return;
+	const handleSave = async (format: string) => {
+		const rawSrc =
+			iconState === "refine"
+				? rawBaseIconSrc
+				: selectedVariant !== null
+					? pipeline.rawVariants[selectedVariant]
+					: null;
+		if (!rawSrc) return;
 
-    try {
-      const response = await fetch(rawSrc);
-      const buffer = await response.arrayBuffer();
-      const imageData = new Uint8Array(buffer);
-      const saved = await invoke<{
-        saved_path: string;
-        canceled: boolean;
-        icns_path: string;
-      }>("save_icon", { imageData: Array.from(imageData), format });
-      if (!saved.canceled && saved.icns_path) {
-        setIconDirty(false);
-        setSaveSuccess({
-          folderPath: saved.saved_path,
-          icnsPath: saved.icns_path,
-        });
-      }
-    } catch {
-      // Silently ignore IPC errors.
-    }
-  };
+		try {
+			const response = await fetch(rawSrc);
+			const buffer = await response.arrayBuffer();
+			const imageData = new Uint8Array(buffer);
+			const saved = await invoke<{
+				saved_path: string;
+				canceled: boolean;
+				icns_path: string;
+			}>("save_icon", { imageData: Array.from(imageData), format });
+			if (!saved.canceled && saved.icns_path) {
+				setIconDirty(false);
+				setSaveSuccess({
+					folderPath: saved.saved_path,
+					icnsPath: saved.icns_path,
+				});
+			}
+		} catch {
+			// Silently ignore IPC errors.
+		}
+	};
 
-  const inputPlaceholder =
-    iconState === "refine"
-      ? "Make changes to the icon or describe a new idea…"
-      : "Describe your app icon…";
+	const inputPlaceholder =
+		iconState === "refine"
+			? "Make changes to the icon or describe a new idea…"
+			: "Describe your app icon…";
 
-  const primaryAction: PrimaryAction =
-    iconState === "generating"
-      ? "stop"
-      : iconState === "generated" && selectedVariant !== null
-        ? "select"
-        : iconState === "generated" && selectedVariant === null
-          ? "refresh"
-          : "submit";
+	const primaryAction: PrimaryAction =
+		iconState === "generating"
+			? "stop"
+			: iconState === "generated" && selectedVariant !== null
+				? "select"
+				: iconState === "generated" && selectedVariant === null
+					? "refresh"
+					: "submit";
 
-  const primaryEnabled =
-    iconState === "generating"
-      ? true
-      : primaryAction === "select"
-        ? selectedVariant !== null
-        : primaryAction === "refresh" || primaryAction === "submit"
-          ? prompt.trim().length > 0
-          : false;
+	const primaryEnabled =
+		iconState === "generating"
+			? true
+			: primaryAction === "select"
+				? selectedVariant !== null
+				: primaryAction === "refresh" || primaryAction === "submit"
+					? prompt.trim().length > 0
+					: false;
 
-  const onPrimary = () => {
-    if (primaryAction === "stop") {
-      stopGeneration();
-      return;
-    }
-    if (primaryAction === "select") {
-      confirmSelectedVariant();
-      return;
-    }
-    startGeneration();
-  };
+	const onPrimary = () => {
+		if (primaryAction === "stop") {
+			stopGeneration();
+			return;
+		}
+		if (primaryAction === "select") {
+			confirmSelectedVariant();
+			return;
+		}
+		startGeneration();
+	};
 
-  const canSave = iconState === "refine" && rawBaseIconSrc != null;
+	const canSave = iconState === "refine" && rawBaseIconSrc != null;
 
-  const showStatus =
-    pipeline.status === "downloading" && pipeline.progress.label !== "";
+	const showStatus =
+		pipeline.status === "downloading" && pipeline.progress.label !== "";
 
-  return (
-    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden select-none app-drag">
-      <SquircleClipDefs />
+	return (
+		<div className="flex flex-col h-screen bg-background text-foreground overflow-hidden select-none app-drag">
+			<SquircleClipDefs />
 
-      {errorMessage && (
-        <ErrorModal
-          message={errorMessage}
-          onClose={() => setErrorMessage(null)}
-          onUpdateApiKey={
-            generationErrorSuggestsApiKeyIssue(errorMessage)
-              ? () => {
-                  setErrorMessage(null);
-                  setOpenAIApiKeyManageReason("authError");
-                }
-              : undefined
-          }
-        />
-      )}
+			{errorMessage && (
+				<ErrorModal
+					message={errorMessage}
+					onClose={() => setErrorMessage(null)}
+					onUpdateApiKey={
+						generationErrorSuggestsApiKeyIssue(errorMessage)
+							? () => {
+									setErrorMessage(null);
+									setOpenAIApiKeyManageReason("authError");
+								}
+							: undefined
+					}
+				/>
+			)}
 
-      {saveSuccess && (
-        <SaveSuccessModal
-          folderPath={saveSuccess.folderPath}
-          icnsPath={saveSuccess.icnsPath}
-          onClose={() => setSaveSuccess(null)}
-        />
-      )}
+			{saveSuccess && (
+				<SaveSuccessModal
+					folderPath={saveSuccess.folderPath}
+					icnsPath={saveSuccess.icnsPath}
+					onClose={() => setSaveSuccess(null)}
+				/>
+			)}
 
-      {openAIApiKeyStartupOpen && (
-        <OpenAIApiKeyStartupModal
-          onSaved={(p: Provider) => {
-            setProvider(p);
-            setModel(getDefaultModel(p));
-            setOpenAIApiKeyStartupOpen(false);
-          }}
-        />
-      )}
-      {openAIApiKeyManageReason !== null && (
-        <OpenAIApiKeyManageModal
-          key={openAIApiKeyManageReason}
-          reason={openAIApiKeyManageReason}
-          defaultProvider={provider}
-          onClose={(saved: boolean, p?: Provider) => {
-            setOpenAIApiKeyManageReason(null);
-            if (p) {
-              setProvider(p);
-              setModel(getDefaultModel(p));
-            }
-            if (saved) setOpenAIApiKeyStartupOpen(false);
-          }}
-        />
-      )}
+			{openAIApiKeyStartupOpen && (
+				<OpenAIApiKeyStartupModal
+					onSaved={(p: Provider) => {
+						setProvider(p);
+						setModel(getDefaultModel(p));
+						setOpenAIApiKeyStartupOpen(false);
+					}}
+				/>
+			)}
+			{openAIApiKeyManageReason !== null && (
+				<OpenAIApiKeyManageModal
+					key={openAIApiKeyManageReason}
+					reason={openAIApiKeyManageReason}
+					defaultProvider={provider}
+					onClose={(saved: boolean, p?: Provider) => {
+						setOpenAIApiKeyManageReason(null);
+						if (p) {
+							setProvider(p);
+							setModel(getDefaultModel(p));
+						}
+						if (saved) setOpenAIApiKeyStartupOpen(false);
+					}}
+				/>
+			)}
 
-      {/* Compact title-bar status: progress line + label. */}
-      {showStatus && (
-        <TitleBarStatus
-          label={pipeline.progress.label}
-          fraction={pipeline.progress.fraction}
-          isError={pipeline.status === "error"}
-        />
-      )}
+			{/* Compact title-bar status: progress line + label. */}
+			{showStatus && (
+				<TitleBarStatus
+					label={pipeline.progress.label}
+					fraction={pipeline.progress.fraction}
+					isError={pipeline.status === "error"}
+				/>
+			)}
 
-      {/* Top bar — model selector dropdown, save right. */}
-      <div className="flex items-center px-4 pt-safe app-no-drag">
-        {/* Model selector — changes by provider set in settings. */}
-        {provider === "fal" && falCustom ? (
-          <div className="flex items-center">
-            <input
-              type="text"
-              value={falInput}
-              onChange={(e) => {
-                setFalInput(e.target.value);
-                setModel(e.target.value);
-                localStorage.setItem("fal_custom_model", e.target.value);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && falInput.trim()) {
-                  const trimmed = falInput.trim();
-                  localStorage.setItem("fal_custom_model", trimmed);
-                  setFalCustom(false);
-                }
-              }}
-              disabled={iconState === "generating"}
-              placeholder="fal-ai/your-model/edit"
-              className="flex h-8 w-[260px] rounded-md border border-input bg-background px-3 py-1 text-xs font-mono ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
-        ) : (
-          <Select
-            value={model}
-            onValueChange={(v) => {
-              if (!v) return;
-              if (provider === "fal" && v === "__custom__") {
-                setFalCustom(true);
-                const saved = localStorage.getItem("fal_custom_model") || "";
-                setFalInput(saved);
-                if (saved) setModel(saved);
-              } else {
-                setFalCustom(false);
-                setModel(v);
-              }
-            }}
-            disabled={iconState === "generating"}
-          >
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Select model" />
-            </SelectTrigger>
-            <SelectContent>
-              {provider === "openai" && (
-                <SelectGroup>
-                  <SelectItem value="gpt-image-1">gpt-image-1</SelectItem>
-                  <SelectItem value="gpt-image-2">gpt-image-2</SelectItem>
-                </SelectGroup>
-              )}
-              {provider === "gemini" && (
-                <SelectGroup>
-                  <SelectItem value="gemini-2.5-flash-image">
-                    Nano Banana
-                  </SelectItem>
-                  <SelectItem value="gemini-3-pro-image-preview">
-                    Nano Banana Pro
-                  </SelectItem>
-                  <SelectItem value="gemini-3.1-flash-image-preview">
-                    Nano Banana 2
-                  </SelectItem>
-                </SelectGroup>
-              )}
-              {provider === "fal" && !falCustom && (
-                <SelectGroup>
-                  <SelectItem value="fal-ai/nano-banana-2/edit">
-                    Nano Banana 2
-                  </SelectItem>
-                  <SelectItem value="fal-ai/nano-banana-pro/edit">
-                    Nano Banana Pro
-                  </SelectItem>
-                  <SelectItem value="fal-ai/nano-banana/edit">
-                    Nano Banana
-                  </SelectItem>
-                  <SelectItem value="openai/gpt-image-2/edit">
-                    gpt-image-2
-                  </SelectItem>
-                  <SelectItem value="openai/gpt-image-1.5/edit">
-                    gpt-image-1.5
-                  </SelectItem>
-                  <SelectItem value="fal-ai/flux-2-pro/edit">
-                    Flux 2 Pro
-                  </SelectItem>
-                  <SelectItem value="fal-ai/flux-pro/kontext">
-                    Flux Pro Kontext
-                  </SelectItem>
-                  <SelectItem value="fal-ai/bytedance/seedream/v5/lite/edit">
-                    Seedream v5 Lite
-                  </SelectItem>
-                  <SelectItem value="fal-ai/bytedance/seedream/v4.5/edit">
-                    Seedream v4.5
-                  </SelectItem>
-                  <SelectItem value="fal-ai/gemini-3-pro-image-preview/edit">
-                    Nano Banana Pro (Gemini)
-                  </SelectItem>
-                  <SelectItem value="fal-ai/gemini-25-flash-image/edit">
-                    Nano Banana (Gemini)
-                  </SelectItem>
-                  <SelectItem value="fal-ai/qwen-image-edit-2511">
-                    Qwen Image Edit
-                  </SelectItem>
-                  {(() => {
-                    const saved = localStorage.getItem("fal_custom_model");
-                    return saved ? (
-                      <>
-                        <SelectSeparator />
-                        <SelectItem value={saved}>{saved}</SelectItem>
-                      </>
-                    ) : null;
-                  })()}
-                  <SelectSeparator />
-                  <SelectItem value="__custom__">Custom…</SelectItem>
-                </SelectGroup>
-              )}
-              {provider === "openrouter" && (
-                <SelectGroup>
-                  <SelectItem value="openai/gpt-5-image">
-                    gpt-image-1
-                  </SelectItem>
-                  <SelectItem value="openai/gpt-5.4-image-2">
-                    gpt-image-2
-                  </SelectItem>
-                  <SelectItem value="openai/gpt-5-image-mini">
-                    gpt-image-1-mini
-                  </SelectItem>
-                  <SelectItem value="google/gemini-2.5-flash-image">
-                    Nano Banana
-                  </SelectItem>
-                  <SelectItem value="google/gemini-3-pro-image-preview">
-                    Nano Banana Pro
-                  </SelectItem>
-                  <SelectItem value="google/gemini-3.1-flash-image-preview">
-                    Nano Banana 2
-                  </SelectItem>
-                </SelectGroup>
-              )}
-            </SelectContent>
-          </Select>
-        )}
+			{/* Top bar — model selector dropdown, save right. */}
+			<div className="flex items-center px-4 pt-safe app-no-drag">
+				{/* Model selector — changes by provider set in settings. */}
+				{provider === "fal" && falCustom ? (
+					<div className="flex items-center">
+						<input
+							type="text"
+							value={falInput}
+							onChange={(e) => {
+								setFalInput(e.target.value);
+								setModel(e.target.value);
+								localStorage.setItem("fal_custom_model", e.target.value);
+							}}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" && falInput.trim()) {
+									const trimmed = falInput.trim();
+									localStorage.setItem("fal_custom_model", trimmed);
+									setFalCustom(false);
+								}
+							}}
+							disabled={iconState === "generating"}
+							placeholder="fal-ai/your-model/edit"
+							className="flex h-8 w-[260px] rounded-md border border-input bg-background px-3 py-1 text-xs font-mono ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+						/>
+					</div>
+				) : (
+					<Select
+						value={model}
+						onValueChange={(v) => {
+							if (!v) return;
+							if (provider === "fal" && v === "__custom__") {
+								setFalCustom(true);
+								const saved = localStorage.getItem("fal_custom_model") || "";
+								setFalInput(saved);
+								if (saved) setModel(saved);
+							} else {
+								setFalCustom(false);
+								setModel(v);
+							}
+						}}
+						disabled={iconState === "generating"}
+					>
+						<SelectTrigger className="h-8 text-xs">
+							<SelectValue placeholder="Select model" />
+						</SelectTrigger>
+						<SelectContent>
+							{provider === "openai" && (
+								<SelectGroup>
+									<SelectItem value="gpt-image-1">gpt-image-1</SelectItem>
+									<SelectItem value="gpt-image-2">gpt-image-2</SelectItem>
+								</SelectGroup>
+							)}
+							{provider === "gemini" && (
+								<SelectGroup>
+									<SelectItem value="gemini-2.5-flash-image">
+										Nano Banana
+									</SelectItem>
+									<SelectItem value="gemini-3-pro-image-preview">
+										Nano Banana Pro
+									</SelectItem>
+									<SelectItem value="gemini-3.1-flash-image-preview">
+										Nano Banana 2
+									</SelectItem>
+								</SelectGroup>
+							)}
+							{provider === "fal" && !falCustom && (
+								<SelectGroup>
+									<SelectItem value="fal-ai/nano-banana-2/edit">
+										Nano Banana 2
+									</SelectItem>
+									<SelectItem value="fal-ai/nano-banana-pro/edit">
+										Nano Banana Pro
+									</SelectItem>
+									<SelectItem value="fal-ai/nano-banana/edit">
+										Nano Banana
+									</SelectItem>
+									<SelectItem value="openai/gpt-image-2/edit">
+										gpt-image-2
+									</SelectItem>
+									<SelectItem value="openai/gpt-image-1.5/edit">
+										gpt-image-1.5
+									</SelectItem>
+									<SelectItem value="fal-ai/flux-2-pro/edit">
+										Flux 2 Pro
+									</SelectItem>
+									<SelectItem value="fal-ai/flux-pro/kontext">
+										Flux Pro Kontext
+									</SelectItem>
+									<SelectItem value="fal-ai/bytedance/seedream/v5/lite/edit">
+										Seedream v5 Lite
+									</SelectItem>
+									<SelectItem value="fal-ai/bytedance/seedream/v4.5/edit">
+										Seedream v4.5
+									</SelectItem>
+									<SelectItem value="fal-ai/gemini-3-pro-image-preview/edit">
+										Nano Banana Pro (Gemini)
+									</SelectItem>
+									<SelectItem value="fal-ai/gemini-25-flash-image/edit">
+										Nano Banana (Gemini)
+									</SelectItem>
+									<SelectItem value="fal-ai/qwen-image-edit-2511">
+										Qwen Image Edit
+									</SelectItem>
+									{(() => {
+										const saved = localStorage.getItem("fal_custom_model");
+										return saved ? (
+											<>
+												<SelectSeparator />
+												<SelectItem value={saved}>{saved}</SelectItem>
+											</>
+										) : null;
+									})()}
+									<SelectSeparator />
+									<SelectItem value="__custom__">Custom…</SelectItem>
+								</SelectGroup>
+							)}
+							{provider === "openrouter" && (
+								<SelectGroup>
+									<SelectItem value="openai/gpt-5-image">
+										gpt-image-1
+									</SelectItem>
+									<SelectItem value="openai/gpt-5.4-image-2">
+										gpt-image-2
+									</SelectItem>
+									<SelectItem value="openai/gpt-5-image-mini">
+										gpt-image-1-mini
+									</SelectItem>
+									<SelectItem value="google/gemini-2.5-flash-image">
+										Nano Banana
+									</SelectItem>
+									<SelectItem value="google/gemini-3-pro-image-preview">
+										Nano Banana Pro
+									</SelectItem>
+									<SelectItem value="google/gemini-3.1-flash-image-preview">
+										Nano Banana 2
+									</SelectItem>
+								</SelectGroup>
+							)}
+						</SelectContent>
+					</Select>
+				)}
 
-        <button
-          disabled={!canSave}
-          onClick={() => handleSave("icns")}
-          className={cn(
-            "flex ml-auto items-center gap-2 px-4 h-8 rounded-l-lg text-sm font-medium transition-all duration-200",
-            canSave
-              ? "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] shadow-md"
-              : "bg-secondary/30 text-muted-foreground/40 cursor-not-allowed",
-          )}
-        >
-          <Download className="w-3.5 h-3.5" />
-          Save
-        </button>
-        <Select
-          value=""
-          onValueChange={(v) => v && handleSave(v)}
-          disabled={!canSave}
-        >
-          <SelectTrigger
-            className={cn(
-              "h-8 w-8 px-0 rounded-l-none rounded-r-lg border-none justify-center!",
-              canSave
-                ? "bg-primary! text-primary-foreground hover:bg-primary/90"
-                : "bg-secondary/30 text-muted-foreground/40 cursor-not-allowed",
-            )}
-          ></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="icns">Save as .icns</SelectItem>
-            <SelectItem value="png">Save as .png</SelectItem>
-            <SelectItem value="jpeg">Save as .jpeg</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+				<button
+					disabled={!canSave}
+					onClick={() => handleSave("icns")}
+					className={cn(
+						"flex ml-auto items-center gap-2 px-4 h-8 rounded-l-lg text-sm font-medium transition-all duration-200",
+						canSave
+							? "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] shadow-md"
+							: "bg-secondary/30 text-muted-foreground/40 cursor-not-allowed",
+					)}
+				>
+					<Download className="w-3.5 h-3.5" />
+					Save
+				</button>
+				<Select
+					value=""
+					onValueChange={(v) => v && handleSave(v)}
+					disabled={!canSave}
+				>
+					<SelectTrigger
+						className={cn(
+							"h-8 w-8 px-0 rounded-l-none rounded-r-lg border-none justify-center!",
+							canSave
+								? "bg-primary! text-primary-foreground hover:bg-primary/90"
+								: "bg-secondary/30 text-muted-foreground/40 cursor-not-allowed",
+						)}
+					></SelectTrigger>
+					<SelectContent>
+						<SelectItem value="icns">Save as .icns</SelectItem>
+						<SelectItem value="png">Save as .png</SelectItem>
+						<SelectItem value="jpeg">Save as .jpeg</SelectItem>
+					</SelectContent>
+				</Select>
+			</div>
 
-      {/* Middle area — vertically centered. */}
-      <div className="flex-1 flex flex-col items-center justify-center px-10">
-        {/* Icon preview. */}
-        <MacOSIcon
-          state={iconState}
-          selected={selectedVariant}
-          onSelect={setSelectedVariant}
-          variants={pipeline.variants}
-          baseIconSrc={baseIconSrc}
-        />
-      </div>
+			{/* Middle area — vertically centered. */}
+			<div className="flex-1 flex flex-col items-center justify-center px-10">
+				{/* Icon preview. */}
+				<MacOSIcon
+					state={iconState}
+					selected={selectedVariant}
+					onSelect={setSelectedVariant}
+					variants={pipeline.variants}
+					baseIconSrc={baseIconSrc}
+				/>
+			</div>
 
-      {/* Bottom area — input at the bottom. */}
-      <div className="flex flex-col items-center px-4 pb-safe app-no-drag">
-        <PromptInput
-          value={prompt}
-          onChange={setPrompt}
-          primaryAction={primaryAction}
-          onPrimary={onPrimary}
-          primaryEnabled={primaryEnabled}
-          onRegenerate={
-            primaryAction === "select" ? startGeneration : undefined
-          }
-          regenerateEnabled={prompt.trim().length > 0}
-          inputDisabled={iconState === "generating"}
-          placeholder={inputPlaceholder}
-          attachments={attachments}
-          onAttachmentsChange={setAttachments}
-          onOpenApiKeySettings={() => setOpenAIApiKeyManageReason("settings")}
-        />
-      </div>
-    </div>
-  );
+			{/* Bottom area — input at the bottom. */}
+			<div className="flex flex-col items-center px-4 pb-safe app-no-drag">
+				<PromptInput
+					value={prompt}
+					onChange={setPrompt}
+					primaryAction={primaryAction}
+					onPrimary={onPrimary}
+					primaryEnabled={primaryEnabled}
+					onRegenerate={
+						primaryAction === "select" ? startGeneration : undefined
+					}
+					regenerateEnabled={prompt.trim().length > 0}
+					inputDisabled={iconState === "generating"}
+					placeholder={inputPlaceholder}
+					attachments={attachments}
+					onAttachmentsChange={setAttachments}
+					onOpenApiKeySettings={() => setOpenAIApiKeyManageReason("settings")}
+				/>
+			</div>
+		</div>
+	);
 }
