@@ -1,4 +1,4 @@
 {
-  "signature": "src/components/app-content.tsx::Unresolved from this turn — src/components/app-content.tsx:\n🔴 STOP — 2 issue(s) must be fixed:\n  L65: 'falCustomModels' is declared but its value is never read.\n    💡 Fix: LSP quick fixes: Remove unused declaration for: 'falCustomModels'; Remove unused declaration for: 'setFalCustomModels'\n  L65: 'setFalCustomModels' is declared but its value is never read.\n    💡 Fix: LSP quick fixes: Remove unused declaration for: 'falCustomModels'; Remove unused declaration for: 'setFalCustomModels'",
+  "signature": "src/components/app-content.tsx::Unresolved from this turn — src/components/app-content.tsx:\n🔴 STOP — 3 issue(s) must be fixed:\n  L296: Cannot find name 'falCustomModels'.\n    💡 Fix: LSP quick fixes: Change spelling to 'setFalCustom'\n  L297: Cannot find name 'falCustomModels'.\n    💡 Fix: LSP quick fixes: Change spelling to 'setFalCustom'\n  L298: Cannot find name 'setFalCustomModels'. Did you mean 'setFalCustom'?\n    💡 Fix: LSP quick fixes: Change spelling to 'setFalCustom'",
   "sessionId": "lens-mp7u0p5p-0a7db208"
 }

@@ -62,16 +62,6 @@ export function AppContent() {
 	const [model, setModel] = useState("gpt-image-1");
 	const [falCustom, setFalCustom] = useState(false);
 	const [falInput, setFalInput] = useState("");
-	const [falCustomModels, setFalCustomModels] = useState<string[]>(
-		() => {
-			try {
-				const saved = localStorage.getItem("fal_custom_models");
-				return saved ? JSON.parse(saved) : [];
-			} catch {
-				return [];
-			}
-		},
-	);
 	const [openAIApiKeyManageReason, setOpenAIApiKeyManageReason] =
 		useState<OpenAIApiKeyManageReason | null>(null);
 	const resumeAfterCancelRef = useRef<ResumeAfterCancel>("idle");
@@ -289,108 +279,145 @@ export function AppContent() {
 
 			{/* Top bar — model selector dropdown, save right. */}
 			<div className="flex items-center justify-between gap-2 px-4 pt-3 app-no-drag">
-				
-{/* Model selector — changes by provider set in settings. */}
-        {provider === "fal" && falCustom ? (
-          <div className="flex items-center">
-            <input
-              type="text"
-              value={falInput}
-              onChange={(e) => {
-                setFalInput(e.target.value);
-                setModel(e.target.value);
-                localStorage.setItem("fal_custom_model", e.target.value);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && falInput.trim()) {
-                  const trimmed = falInput.trim();
-                  if (!falCustomModels.includes(trimmed)) {
-                    const next = [...falCustomModels, trimmed];
-                    setFalCustomModels(next);
-                    localStorage.setItem("fal_custom_models", JSON.stringify(next));
-                  }
-                  setFalCustom(false);
-                }
-              }}
-              disabled={iconState === "generating"}
-              placeholder="fal-ai/your-model/edit"
-              className="flex h-8 w-[260px] rounded-md border border-input bg-background px-3 py-1 text-xs font-mono ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
-        ) : (
-          <Select
-            value={model}
-            onValueChange={(v) => {
-              if (!v) return;
-              if (provider === "fal" && v === "__custom__") {
-                setFalCustom(true);
-                const saved = localStorage.getItem("fal_custom_model") || "";
-                setFalInput(saved);
-                if (saved) setModel(saved);
-              } else {
-                setFalCustom(false);
-                setModel(v);
-              }
-            }}
-            disabled={iconState === "generating"}
-          >
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Select model" />
-            </SelectTrigger>
-            <SelectContent>
-              {provider === "openai" && (
-                <SelectGroup>
-                  <SelectItem value="gpt-image-1">gpt-image-1</SelectItem>
-                  <SelectItem value="gpt-image-2">gpt-image-2</SelectItem>
-                </SelectGroup>
-              )}
-              {provider === "gemini" && (
-                <SelectGroup>
-                  <SelectItem value="gemini-2.5-flash-image">Nano Banana</SelectItem>
-                  <SelectItem value="gemini-3-pro-image-preview">Nano Banana Pro</SelectItem>
-                  <SelectItem value="gemini-3.1-flash-image-preview">Nano Banana 2</SelectItem>
-                </SelectGroup>
-              )}
-              {provider === "fal" && !falCustom && (
-                <SelectGroup>
-                  <SelectItem value="fal-ai/nano-banana-2/edit">Nano Banana 2</SelectItem>
-                  <SelectItem value="fal-ai/nano-banana-pro/edit">Nano Banana Pro</SelectItem>
-                  <SelectItem value="fal-ai/nano-banana/edit">Nano Banana</SelectItem>
-                  <SelectItem value="openai/gpt-image-2/edit">gpt-image-2</SelectItem>
-                  <SelectItem value="openai/gpt-image-1.5/edit">gpt-image-1.5</SelectItem>
-                  <SelectItem value="fal-ai/flux-2-pro/edit">Flux 2 Pro</SelectItem>
-                  <SelectItem value="fal-ai/flux-pro/kontext">Flux Pro Kontext</SelectItem>
-                  <SelectItem value="fal-ai/bytedance/seedream/v5/lite/edit">Seedream v5 Lite</SelectItem>
-                  <SelectItem value="fal-ai/bytedance/seedream/v4.5/edit">Seedream v4.5</SelectItem>
-                  <SelectItem value="fal-ai/gemini-3-pro-image-preview/edit">Nano Banana Pro (Gemini)</SelectItem>
-                  <SelectItem value="fal-ai/gemini-25-flash-image/edit">Nano Banana (Gemini)</SelectItem>
-                  <SelectItem value="fal-ai/qwen-image-edit-2511">Qwen Image Edit</SelectItem>
-                  {falCustomModels.length > 0 && (
-                    <>
-                      <SelectSeparator />
-                      {falCustomModels.map((m) => (
-                        <SelectItem key={m} value={m}>{m}</SelectItem>
-                      ))}
-                    </>
-                  )}
-                  <SelectSeparator />
-                  <SelectItem value="__custom__">Custom…</SelectItem>
-                </SelectGroup>
-              )}
-              {provider === "openrouter" && (
-                <SelectGroup>
-                  <SelectItem value="openai/gpt-5-image">gpt-image-1</SelectItem>
-                  <SelectItem value="openai/gpt-5.4-image-2">gpt-image-2</SelectItem>
-                  <SelectItem value="openai/gpt-5-image-mini">gpt-image-1-mini</SelectItem>
-                  <SelectItem value="google/gemini-2.5-flash-image">Nano Banana</SelectItem>
-                  <SelectItem value="google/gemini-3-pro-image-preview">Nano Banana Pro</SelectItem>
-                  <SelectItem value="google/gemini-3.1-flash-image-preview">Nano Banana 2</SelectItem>
-                </SelectGroup>
-              )}
-            </SelectContent>
-          </Select>
-        )}
-
+				{/* Model selector — changes by provider set in settings. */}
+				{provider === "fal" && falCustom ? (
+					<div className="flex items-center">
+						<input
+							type="text"
+							value={falInput}
+							onChange={(e) => {
+								setFalInput(e.target.value);
+								setModel(e.target.value);
+								localStorage.setItem("fal_custom_model", e.target.value);
+							}}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" && falInput.trim()) {
+									const trimmed = falInput.trim();
+									localStorage.setItem("fal_custom_model", trimmed);
+									setFalCustom(false);
+								}
+							}}
+							disabled={iconState === "generating"}
+							placeholder="fal-ai/your-model/edit"
+							className="flex h-8 w-[260px] rounded-md border border-input bg-background px-3 py-1 text-xs font-mono ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+						/>
+					</div>
+				) : (
+					<Select
+						value={model}
+						onValueChange={(v) => {
+							if (!v) return;
+							if (provider === "fal" && v === "__custom__") {
+								setFalCustom(true);
+								const saved = localStorage.getItem("fal_custom_model") || "";
+								setFalInput(saved);
+								if (saved) setModel(saved);
+							} else {
+								setFalCustom(false);
+								setModel(v);
+							}
+						}}
+						disabled={iconState === "generating"}
+					>
+						<SelectTrigger className="h-8 text-xs">
+							<SelectValue placeholder="Select model" />
+						</SelectTrigger>
+						<SelectContent>
+							{provider === "openai" && (
+								<SelectGroup>
+									<SelectItem value="gpt-image-1">gpt-image-1</SelectItem>
+									<SelectItem value="gpt-image-2">gpt-image-2</SelectItem>
+								</SelectGroup>
+							)}
+							{provider === "gemini" && (
+								<SelectGroup>
+									<SelectItem value="gemini-2.5-flash-image">
+										Nano Banana
+									</SelectItem>
+									<SelectItem value="gemini-3-pro-image-preview">
+										Nano Banana Pro
+									</SelectItem>
+									<SelectItem value="gemini-3.1-flash-image-preview">
+										Nano Banana 2
+									</SelectItem>
+								</SelectGroup>
+							)}
+							{provider === "fal" && !falCustom && (
+								<SelectGroup>
+									<SelectItem value="fal-ai/nano-banana-2/edit">
+										Nano Banana 2
+									</SelectItem>
+									<SelectItem value="fal-ai/nano-banana-pro/edit">
+										Nano Banana Pro
+									</SelectItem>
+									<SelectItem value="fal-ai/nano-banana/edit">
+										Nano Banana
+									</SelectItem>
+									<SelectItem value="openai/gpt-image-2/edit">
+										gpt-image-2
+									</SelectItem>
+									<SelectItem value="openai/gpt-image-1.5/edit">
+										gpt-image-1.5
+									</SelectItem>
+									<SelectItem value="fal-ai/flux-2-pro/edit">
+										Flux 2 Pro
+									</SelectItem>
+									<SelectItem value="fal-ai/flux-pro/kontext">
+										Flux Pro Kontext
+									</SelectItem>
+									<SelectItem value="fal-ai/bytedance/seedream/v5/lite/edit">
+										Seedream v5 Lite
+									</SelectItem>
+									<SelectItem value="fal-ai/bytedance/seedream/v4.5/edit">
+										Seedream v4.5
+									</SelectItem>
+									<SelectItem value="fal-ai/gemini-3-pro-image-preview/edit">
+										Nano Banana Pro (Gemini)
+									</SelectItem>
+									<SelectItem value="fal-ai/gemini-25-flash-image/edit">
+										Nano Banana (Gemini)
+									</SelectItem>
+									<SelectItem value="fal-ai/qwen-image-edit-2511">
+										Qwen Image Edit
+									</SelectItem>
+									{(() => {
+										const saved = localStorage.getItem("fal_custom_model");
+										return saved ? (
+											<>
+												<SelectSeparator />
+												<SelectItem value={saved}>{saved}</SelectItem>
+											</>
+										) : null;
+									})()}
+									<SelectSeparator />
+									<SelectItem value="__custom__">Custom…</SelectItem>
+								</SelectGroup>
+							)}
+							{provider === "openrouter" && (
+								<SelectGroup>
+									<SelectItem value="openai/gpt-5-image">
+										gpt-image-1
+									</SelectItem>
+									<SelectItem value="openai/gpt-5.4-image-2">
+										gpt-image-2
+									</SelectItem>
+									<SelectItem value="openai/gpt-5-image-mini">
+										gpt-image-1-mini
+									</SelectItem>
+									<SelectItem value="google/gemini-2.5-flash-image">
+										Nano Banana
+									</SelectItem>
+									<SelectItem value="google/gemini-3-pro-image-preview">
+										Nano Banana Pro
+									</SelectItem>
+									<SelectItem value="google/gemini-3.1-flash-image-preview">
+										Nano Banana 2
+									</SelectItem>
+								</SelectGroup>
+							)}
+						</SelectContent>
+					</Select>
+				)}
 
 				<button
 					disabled={!canSave}
