@@ -1,27 +1,50 @@
-name: Release Tauri App
+name: Release
 
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*"
 
 permissions:
   contents: write
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
-  build:
+  build-tauri:
+    name: Build App ${{ matrix.name }}
+    runs-on: ${{ matrix.platform }}
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-
-    runs-on: ${{ matrix.os }}
+        include:
+          - name: macOS ARM64
+            platform: macos-latest
+            args: --target aarch64-apple-darwin
+            artifact_id: macos-arm64
+          - name: macOS AMD64
+            platform: macos-13
+            args: --target x86_64-apple-darwin
+            artifact_id: macos-amd64
+          - name: Linux (Ubuntu 22.04)
+            platform: ubuntu-22.04
+            args: ""
+            artifact_id: linux
+          - name: Windows
+            platform: windows-latest
+            args: ""
+            artifact_id: windows
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -29,36 +52,242 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
+      - name: Verify pnpm
+        run: pnpm --version
 
-      - name: Install Linux system dependencies
-        if: matrix.os == 'ubuntu-latest'
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add macOS Rust targets
+        if: startsWith(matrix.platform, 'macos-')
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
-            build-essential \
-            curl \
-            wget \
-            file \
-            libxdo-dev \
-            libssl-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build and publish Tauri app
+      - name: Build app with official Tauri action
         uses: tauri-apps/tauri-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: App Icon Maker ${{ github.ref_name }}
-          releaseBody: Automated release for ${{ github.ref_name }}
-          releaseDraft: false
-          prerelease: false
+          releaseBody: See app installers in this release.
+          releaseDraft: true
+          prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
+          tauriScript: pnpm tauri
+          args: ${{ matrix.args }}
+
+      - name: Upload desktop app artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-icon-maker_app_${{ matrix.artifact_id }}
+          if-no-files-found: warn
+          path: |
+            target/release/bundle/**
+            target/*/release/bundle/**
+
+  build-android:
+    name: Build App Android
+    runs-on: ubuntu-latest
+    outputs:
+      has_android_secrets: ${{ steps.check-secrets.outputs.has_android_secrets }}
+    env:
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_KEY_BASE64: ${{ secrets.ANDROID_KEY_BASE64 }}
+
+    steps:
+      - name: Check Android signing secrets
+        id: check-secrets
+        shell: bash
+        run: |
+          if [[ -n "$ANDROID_KEY_ALIAS" && -n "$ANDROID_KEY_PASSWORD" && -n "$ANDROID_KEY_BASE64" ]]; then
+            echo "has_android_secrets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_android_secrets=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip Android build (missing signing secrets)
+        if: steps.check-secrets.outputs.has_android_secrets != 'true'
+        run: echo "Skipping Android build because signing secrets are not configured."
+
+      - name: Checkout code
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Setup Node.js
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Rust toolchain (Android targets)
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android
+
+      - name: Setup Java
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "17"
+
+      - name: Setup Android SDK
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        shell: bash
+        run: |
+          sdkmanager --install "ndk;27.0.12077973"
+          NDK_DIR="$ANDROID_SDK_ROOT/ndk/27.0.12077973"
+          echo "NDK_HOME=$NDK_DIR" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$NDK_DIR" >> "$GITHUB_ENV"
+
+      - name: Verify Android toolchain
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        shell: bash
+        run: |
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "NDK_HOME=$NDK_HOME"
+          test -d "$ANDROID_SDK_ROOT"
+          test -d "$NDK_HOME"
+
+      - name: Install frontend dependencies
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up Android signing
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        shell: bash
+        run: |
+          cd src-tauri/gen/android
+          {
+            printf 'keyAlias=%s\n' "$ANDROID_KEY_ALIAS"
+            printf 'password=%s\n' "$ANDROID_KEY_PASSWORD"
+            printf 'storeFile=%s\n' "$RUNNER_TEMP/upload-keystore.jks"
+          } > keystore.properties
+          printf '%s' "$ANDROID_KEY_BASE64" | tr -d '\r\n' | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
+
+      - name: Build Android app (APK + AAB)
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        run: pnpm tauri android build --config src-tauri/tauri.conf.json --target aarch64 armv7 i686 --apk --aab --split-per-abi
+
+      - name: Prepare Android ABI artifacts
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/android/aarch64 dist/android/armv7 dist/android/i686 dist/android/aab
+
+          while IFS= read -r -d '' apk; do
+            name="$(basename "$apk")"
+            lower_name="$(echo "$name" | tr '[:upper:]' '[:lower:]')"
+            if [[ "$lower_name" == *"arm64"* || "$lower_name" == *"aarch64"* ]]; then
+              cp "$apk" "dist/android/aarch64/app-icon-maker_android-aarch64.apk"
+            elif [[ "$lower_name" == *"armeabi-v7a"* || "$lower_name" == *"armv7"* || "$lower_name" == *"-arm-"* ]]; then
+              cp "$apk" "dist/android/armv7/app-icon-maker_android-armv7.apk"
+            elif [[ "$lower_name" == *"x86_64"* ]]; then
+              continue
+            elif [[ "$lower_name" == *"x86"* || "$lower_name" == *"i686"* ]]; then
+              cp "$apk" "dist/android/i686/app-icon-maker_android-i686.apk"
+            fi
+          done < <(find src-tauri/gen/android/app/build/outputs/apk -type f -name "*.apk" -print0)
+
+          find src-tauri/gen/android/app/build/outputs/bundle -type f -name "*.aab" -exec cp {} dist/android/aab/ \;
+
+          ls -lahR dist/android
+
+          test -f dist/android/aarch64/app-icon-maker_android-aarch64.apk
+          test -f dist/android/armv7/app-icon-maker_android-armv7.apk
+          test -f dist/android/i686/app-icon-maker_android-i686.apk
+
+      - name: Upload Android aarch64 APK
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-icon-maker_android_aarch64
+          if-no-files-found: error
+          path: dist/android/aarch64/*.apk
+
+      - name: Upload Android armv7 APK
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-icon-maker_android_armv7
+          if-no-files-found: error
+          path: dist/android/armv7/*.apk
+
+      - name: Upload Android i686 APK
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-icon-maker_android_i686
+          if-no-files-found: error
+          path: dist/android/i686/*.apk
+
+      - name: Upload Android AAB
+        if: steps.check-secrets.outputs.has_android_secrets == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-icon-maker_android_aab
+          if-no-files-found: warn
+          path: dist/android/aab/*.aab
+
+  release:
+    name: Publish Release Assets
+    if: ${{ always() && needs.build-tauri.result != 'cancelled' && needs.build-android.result != 'cancelled' }}
+    needs:
+      - build-tauri
+      - build-android
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Android artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: app-icon-maker_android_*
+          merge-multiple: false
+          path: dist/android
+
+      - name: Show downloaded files
+        run: ls -lahR dist
+
+      - name: Upload Android to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            dist/android/**/*.apk
+            dist/android/**/*.aab
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          append_body: true
