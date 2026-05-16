@@ -90,6 +90,19 @@ export function AppContent() {
 			.catch(() => {});
 	}, []);
 
+	// Persist provider and model to localStorage for restore on next launch
+	useEffect(() => {
+		localStorage.setItem("provider", provider);
+	}, [provider]);
+
+	useEffect(() => {
+		localStorage.setItem("model", model);
+	}, [model]);
+
+	useEffect(() => {
+		localStorage.setItem("fal_custom", String(falCustom));
+	}, [falCustom]);
+
 	const clearAttachments = useCallback(() => {
 		setAttachments((prev) => {
 			for (const url of prev) URL.revokeObjectURL(url);

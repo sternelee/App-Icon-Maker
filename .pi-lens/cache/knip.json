@@ -3,11 +3,6 @@
   "issues": [
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-220bc42c828a4cc5/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-220bc42c828a4cc5/out/__global-api-script.js"
-    },
-    {
-      "type": "file",
       "name": "src-tauri/target/debug/build/app-icon-maker-0d93c49b5a12a678/out/__global-api-script.js",
       "file": "src-tauri/target/debug/build/app-icon-maker-0d93c49b5a12a678/out/__global-api-script.js"
     },
@@ -15,6 +10,16 @@
       "type": "file",
       "name": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js",
       "file": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-220bc42c828a4cc5/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-220bc42c828a4cc5/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js"
     },
     {
       "type": "file",
@@ -33,23 +38,18 @@
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js"
-    },
-    {
-      "type": "file",
       "name": "src-tauri/target/release/build/app-icon-maker-25f7b126e2708e7f/out/__global-api-script.js",
       "file": "src-tauri/target/release/build/app-icon-maker-25f7b126e2708e7f/out/__global-api-script.js"
     },
     {
       "type": "file",
-      "name": "src-tauri/target/aarch64-linux-android/debug/build/app-icon-maker-71c75ecbb6241f52/out/__global-api-script.js",
-      "file": "src-tauri/target/aarch64-linux-android/debug/build/app-icon-maker-71c75ecbb6241f52/out/__global-api-script.js"
+      "name": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/__global-api-script.js",
+      "file": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/__global-api-script.js"
     },
     {
       "type": "file",
-      "name": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/__global-api-script.js",
-      "file": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/__global-api-script.js"
+      "name": "src-tauri/target/aarch64-linux-android/debug/build/app-icon-maker-71c75ecbb6241f52/out/__global-api-script.js",
+      "file": "src-tauri/target/aarch64-linux-android/debug/build/app-icon-maker-71c75ecbb6241f52/out/__global-api-script.js"
     },
     {
       "type": "file",
@@ -83,8 +83,18 @@
     },
     {
       "type": "file",
+      "name": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/tauri-codegen-assets/01c71684ff3707b4c79954376ac5f5ec74d2c3237242ca0ea26fc73c5e630d95.js",
+      "file": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/tauri-codegen-assets/01c71684ff3707b4c79954376ac5f5ec74d2c3237242ca0ea26fc73c5e630d95.js"
+    },
+    {
+      "type": "file",
       "name": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/tauri-codegen-assets/309c3ec791d1e16032f04aa6cd990e3312c66e09327c384e636c0613cd2ddaac.js",
       "file": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/tauri-codegen-assets/309c3ec791d1e16032f04aa6cd990e3312c66e09327c384e636c0613cd2ddaac.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/tauri-codegen-assets/367c1439483b4ced5b7d16025bc687421501c805f7b87bc4fdd1123b73ece9ad.js",
+      "file": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/tauri-codegen-assets/367c1439483b4ced5b7d16025bc687421501c805f7b87bc4fdd1123b73ece9ad.js"
     },
     {
       "type": "file",
@@ -231,11 +241,6 @@
   "unusedFiles": [
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-220bc42c828a4cc5/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-220bc42c828a4cc5/out/__global-api-script.js"
-    },
-    {
-      "type": "file",
       "name": "src-tauri/target/debug/build/app-icon-maker-0d93c49b5a12a678/out/__global-api-script.js",
       "file": "src-tauri/target/debug/build/app-icon-maker-0d93c49b5a12a678/out/__global-api-script.js"
     },
@@ -243,6 +248,16 @@
       "type": "file",
       "name": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js",
       "file": "src-tauri/target/debug/build/app-icon-maker-2bf384c814eef166/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-220bc42c828a4cc5/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-220bc42c828a4cc5/out/__global-api-script.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js",
+      "file": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js"
     },
     {
       "type": "file",
@@ -261,23 +276,18 @@
     },
     {
       "type": "file",
-      "name": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js",
-      "file": "src-tauri/target/debug/build/app-icon-maker-8cd9d46b18b38493/out/__global-api-script.js"
-    },
-    {
-      "type": "file",
       "name": "src-tauri/target/release/build/app-icon-maker-25f7b126e2708e7f/out/__global-api-script.js",
       "file": "src-tauri/target/release/build/app-icon-maker-25f7b126e2708e7f/out/__global-api-script.js"
     },
     {
       "type": "file",
-      "name": "src-tauri/target/aarch64-linux-android/debug/build/app-icon-maker-71c75ecbb6241f52/out/__global-api-script.js",
-      "file": "src-tauri/target/aarch64-linux-android/debug/build/app-icon-maker-71c75ecbb6241f52/out/__global-api-script.js"
+      "name": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/__global-api-script.js",
+      "file": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/__global-api-script.js"
     },
     {
       "type": "file",
-      "name": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/__global-api-script.js",
-      "file": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/__global-api-script.js"
+      "name": "src-tauri/target/aarch64-linux-android/debug/build/app-icon-maker-71c75ecbb6241f52/out/__global-api-script.js",
+      "file": "src-tauri/target/aarch64-linux-android/debug/build/app-icon-maker-71c75ecbb6241f52/out/__global-api-script.js"
     },
     {
       "type": "file",
@@ -311,8 +321,18 @@
     },
     {
       "type": "file",
+      "name": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/tauri-codegen-assets/01c71684ff3707b4c79954376ac5f5ec74d2c3237242ca0ea26fc73c5e630d95.js",
+      "file": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/tauri-codegen-assets/01c71684ff3707b4c79954376ac5f5ec74d2c3237242ca0ea26fc73c5e630d95.js"
+    },
+    {
+      "type": "file",
       "name": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/tauri-codegen-assets/309c3ec791d1e16032f04aa6cd990e3312c66e09327c384e636c0613cd2ddaac.js",
       "file": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/tauri-codegen-assets/309c3ec791d1e16032f04aa6cd990e3312c66e09327c384e636c0613cd2ddaac.js"
+    },
+    {
+      "type": "file",
+      "name": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/tauri-codegen-assets/367c1439483b4ced5b7d16025bc687421501c805f7b87bc4fdd1123b73ece9ad.js",
+      "file": "src-tauri/target/aarch64-linux-android/release/build/app-icon-maker-077c137ca9cf9a9a/out/tauri-codegen-assets/367c1439483b4ced5b7d16025bc687421501c805f7b87bc4fdd1123b73ece9ad.js"
     },
     {
       "type": "file",
@@ -385,5 +405,5 @@
     }
   ],
   "unlistedDeps": [],
-  "summary": "Found 35 issues"
+  "summary": "Found 37 issues"
 }
