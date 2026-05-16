@@ -1162,18 +1162,25 @@ async fn generate_icon(
 async fn save_icon(
     app_handle: tauri::AppHandle,
     image_data: Vec<u8>,
+    format: String,
 ) -> Result<SaveIconResponse, String> {
     use tauri_plugin_dialog::DialogExt;
 
+    let (filter_name, extensions, default_name) = match format.as_str() {
+        "png" => ("PNG image", vec!["png"], "app.png"),
+        "jpeg" => ("JPEG image", vec!["jpg", "jpeg"], "app.jpg"),
+        _ => ("macOS icon", vec!["icns"], "app.icns"),
+    };
+
     let desktop_path = dirs::desktop_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("app.icns");
+        .join(default_name);
 
     let result = app_handle
         .dialog()
         .file()
-        .add_filter("macOS icon", &["icns"])
-        .set_file_name("app.icns")
+        .add_filter(filter_name, &extensions)
+        .set_file_name(default_name)
         .set_directory(desktop_path.parent().unwrap_or(std::path::Path::new(".")))
         .blocking_save_file();
 
@@ -1184,17 +1191,54 @@ async fn save_icon(
                 .parent()
                 .unwrap_or(std::path::Path::new("."))
                 .to_path_buf();
-            let file_stem = pb.file_stem().and_then(|s| s.to_str()).unwrap_or("App");
-            let iconset_dir = parent_dir.join(format!("{}.iconset", file_stem));
-            let icns_path = parent_dir.join(format!("{}.icns", file_stem));
 
-            build_icns(image_data, &iconset_dir, &icns_path).await?;
-
-            Ok(SaveIconResponse {
-                saved_path: parent_dir.to_string_lossy().to_string(),
-                canceled: false,
-                icns_path: icns_path.to_string_lossy().to_string(),
-            })
+            match format.as_str() {
+                "png" => {
+                    std::fs::write(&pb, &image_data)
+                        .map_err(|e| format!("Failed to write PNG: {}", e))?;
+                    Ok(SaveIconResponse {
+                        saved_path: parent_dir.to_string_lossy().to_string(),
+                        canceled: false,
+                        icns_path: pb.to_string_lossy().to_string(),
+                    })
+                }
+                "jpeg" => {
+                    // Write as temporary PNG first, then convert with sips
+                    let tmp = std::env::temp_dir().join(format!("iconmaker-save-{}", std::process::id()));
+                    let tmp_png = tmp.join("tmp.png");
+                    std::fs::create_dir_all(&tmp).map_err(|e| format!("Failed to create temp dir: {}", e))?;
+                    std::fs::write(&tmp_png, &image_data)
+                        .map_err(|e| format!("Failed to write temp PNG: {}", e))?;
+                    run_command(
+                        "sips",
+                        &[
+                            "-s",
+                            "format",
+                            "jpeg",
+                            tmp_png.to_str().unwrap(),
+                            "--out",
+                            pb.to_str().unwrap(),
+                        ],
+                    )?;
+                    let _ = std::fs::remove_dir_all(&tmp);
+                    Ok(SaveIconResponse {
+                        saved_path: parent_dir.to_string_lossy().to_string(),
+                        canceled: false,
+                        icns_path: pb.to_string_lossy().to_string(),
+                    })
+                }
+                _ => {
+                    let file_stem = pb.file_stem().and_then(|s| s.to_str()).unwrap_or("App");
+                    let iconset_dir = parent_dir.join(format!("{}.iconset", file_stem));
+                    let icns_path = parent_dir.join(format!("{}.icns", file_stem));
+                    build_icns(image_data, &iconset_dir, &icns_path).await?;
+                    Ok(SaveIconResponse {
+                        saved_path: parent_dir.to_string_lossy().to_string(),
+                        canceled: false,
+                        icns_path: icns_path.to_string_lossy().to_string(),
+                    })
+                }
+            }
         }
         None => Ok(SaveIconResponse {
             saved_path: String::new(),

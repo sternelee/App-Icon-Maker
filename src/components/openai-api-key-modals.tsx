@@ -96,13 +96,11 @@ function ProviderSelect({
         <SelectValue placeholder="Select provider" />
       </SelectTrigger>
       <SelectContent>
-        {(["openai", "gemini", "openrouter", "fal"] as Provider[]).map(
-          (p) => (
-            <SelectItem key={p} value={p}>
-              {PROVIDER_CONFIG[p].label}
-            </SelectItem>
-          ),
-        )}
+        {(["openai", "gemini", "openrouter", "fal"] as Provider[]).map((p) => (
+          <SelectItem key={p} value={p}>
+            {PROVIDER_CONFIG[p].label}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );
