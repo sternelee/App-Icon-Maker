@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Download, ChevronDown } from "lucide-react";
+import { Download } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { MacOSIcon } from "@/components/macos-icon";
 import {
