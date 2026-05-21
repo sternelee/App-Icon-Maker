@@ -1,4 +1,0 @@
-{
-  "signature": "src/components/app-content.tsx::Unresolved from this turn — src/components/app-content.tsx:\n🔴 STOP — 3 issue(s) must be fixed:\n  L296: Cannot find name 'falCustomModels'.\n    💡 Fix: LSP quick fixes: Change spelling to 'setFalCustom'\n  L297: Cannot find name 'falCustomModels'.\n    💡 Fix: LSP quick fixes: Change spelling to 'setFalCustom'\n  L298: Cannot find name 'setFalCustomModels'. Did you mean 'setFalCustom'?\n    💡 Fix: LSP quick fixes: Change spelling to 'setFalCustom'",
-  "sessionId": "lens-mp7u0p5p-0a7db208"
-}

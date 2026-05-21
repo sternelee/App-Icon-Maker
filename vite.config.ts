@@ -12,6 +12,8 @@ export default defineConfig(async () => ({
 	resolve: {
 		alias: {
 			"@": path.resolve(__dirname, "./src"),
+			"@app-icon-maker/utils": path.resolve(__dirname, "./packages/utils/src"),
+			"@app-icon-maker/ui": path.resolve(__dirname, "./packages/ui/src"),
 		},
 	},
 

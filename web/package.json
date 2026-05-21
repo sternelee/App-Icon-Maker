@@ -1,0 +1,36 @@
+{
+  "name": "web",
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "node scripts/build-tailwind.mjs && astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@app-icon-maker/ui": "workspace:*",
+    "@app-icon-maker/utils": "workspace:*",
+    "@astrojs/cloudflare": "^12.6.0",
+    "@astrojs/react": "^4.3.0",
+    "@base-ui/react": "^1.4.1",
+    "astro": "^6.3.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.14.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.0",
+    "tailwindcss-animate": "^1.0.7",
+    "tw-animate-css": "^1.4.0",
+    "use-sync-external-store": "^1.5.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.0",
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "postcss": "^8.5.14"
+  }
+}
