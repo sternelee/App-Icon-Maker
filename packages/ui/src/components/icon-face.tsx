@@ -1,7 +1,10 @@
 import { Sparkles } from "lucide-react";
 import { BlueprintFace } from "./blueprint-face";
 import type { IconState } from "@app-icon-maker/utils";
-import { ICON_FACE_EDGE_DEFAULT, SQUICLE_PATH_100 } from "@app-icon-maker/utils";
+import {
+  ICON_FACE_EDGE_DEFAULT,
+  SQUICLE_PATH_100,
+} from "@app-icon-maker/utils";
 
 export function IconFace({
   state,

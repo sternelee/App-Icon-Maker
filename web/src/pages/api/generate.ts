@@ -14,10 +14,14 @@ export const POST: APIRoute = async ({ request }) => {
     const { prompt, model, provider, referenceImage, apiKey } = body;
 
     if (!apiKey) {
-      return new Response(JSON.stringify({ images: [], error: "API key is required" }), { status: 400 });
+      return new Response(
+        JSON.stringify({ images: [], error: "API key is required" }),
+        { status: 400 },
+      );
     }
 
-    const systemPrefix = "Premium macOS app icon artwork, centered composition, single object only, no text, no letters, no UI mockup, clean cohesive background, object fills the square canvas naturally,";
+    const systemPrefix =
+      "Premium macOS app icon artwork, centered composition, single object only, no text, no letters, no UI mockup, clean cohesive background, object fills the square canvas naturally,";
 
     switch (provider) {
       case "openai": {
@@ -83,9 +87,10 @@ export const POST: APIRoute = async ({ request }) => {
         }
 
         const data = await res.json();
-        const images = data.candidates?.[0]?.content?.parts
-          ?.filter((p: any) => p.inline_data)
-          .map((p: any) => p.inline_data.data) || [];
+        const images =
+          data.candidates?.[0]?.content?.parts
+            ?.filter((p: any) => p.inline_data)
+            .map((p: any) => p.inline_data.data) || [];
         return new Response(JSON.stringify({ images }));
       }
 
@@ -93,9 +98,7 @@ export const POST: APIRoute = async ({ request }) => {
         const messages: any[] = [
           {
             role: "user",
-            content: [
-              { type: "text", text: `${systemPrefix} ${prompt}` },
-            ],
+            content: [{ type: "text", text: `${systemPrefix} ${prompt}` }],
           },
         ];
 
@@ -106,18 +109,21 @@ export const POST: APIRoute = async ({ request }) => {
           });
         }
 
-        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
+        const res = await fetch(
+          "https://openrouter.ai/api/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: model || "openai/gpt-5-image",
+              messages,
+              n: 3,
+            }),
           },
-          body: JSON.stringify({
-            model: model || "openai/gpt-5-image",
-            messages,
-            n: 3,
-          }),
-        });
+        );
 
         if (!res.ok) {
           const err = await res.text();
@@ -125,11 +131,14 @@ export const POST: APIRoute = async ({ request }) => {
         }
 
         const data = await res.json();
-        const images = data.choices?.map((c: any) => {
-          const content = c.message?.content || "";
-          const match = content.match(/data:image\/[^;]+;base64,([^"]+)/);
-          return match ? match[1] : null;
-        }).filter(Boolean) || [];
+        const images =
+          data.choices
+            ?.map((c: any) => {
+              const content = c.message?.content || "";
+              const match = content.match(/data:image\/[^;]+;base64,([^"]+)/);
+              return match ? match[1] : null;
+            })
+            .filter(Boolean) || [];
         return new Response(JSON.stringify({ images }));
       }
 
@@ -178,30 +187,48 @@ export const POST: APIRoute = async ({ request }) => {
               headers: { Authorization: `Key ${apiKey}` },
             });
             const resultData = await resultRes.json();
-            const images = resultData.images?.map((img: any) => {
-              const b64 = img.url?.split(",")[1] || img.url || "";
-              return b64;
-            }).filter(Boolean) || [];
+            const images =
+              resultData.images
+                ?.map((img: any) => {
+                  const b64 = img.url?.split(",")[1] || img.url || "";
+                  return b64;
+                })
+                .filter(Boolean) || [];
             return new Response(JSON.stringify({ images }));
           }
 
           if (statusData.status === "FAILED") {
-            return new Response(JSON.stringify({ images: [], error: statusData.error || "fal generation failed" }));
+            return new Response(
+              JSON.stringify({
+                images: [],
+                error: statusData.error || "fal generation failed",
+              }),
+            );
           }
 
           await new Promise((r) => setTimeout(r, 1000));
           attempts++;
         }
 
-        return new Response(JSON.stringify({ images: [], error: "fal generation timed out" }));
+        return new Response(
+          JSON.stringify({ images: [], error: "fal generation timed out" }),
+        );
       }
 
       default:
-        return new Response(JSON.stringify({ images: [], error: `Unknown provider: ${provider}` }), { status: 400 });
+        return new Response(
+          JSON.stringify({
+            images: [],
+            error: `Unknown provider: ${provider}`,
+          }),
+          { status: 400 },
+        );
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return new Response(JSON.stringify({ images: [], error: msg }), { status: 500 });
+    return new Response(JSON.stringify({ images: [], error: msg }), {
+      status: 500,
+    });
   }
 };
 
