@@ -6,7 +6,9 @@
     "dev": "astro dev",
     "build": "node scripts/build-tailwind.mjs && astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "deploy": "astro build && ./node_modules/.bin/wrangler deploy",
+    "cf-typegen": "./node_modules/.bin/wrangler types"
   },
   "dependencies": {
     "@app-icon-maker/ui": "workspace:*",
@@ -31,6 +33,7 @@
     "@tailwindcss/vite": "^4.3.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "postcss": "^8.5.14"
+    "postcss": "^8.5.14",
+    "wrangler": "^4.93.1"
   }
 }

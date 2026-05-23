@@ -49,14 +49,14 @@ Four AI providers: `openai`, `gemini`, `openrouter`, `fal`. Provider type is `"o
 
 ## Key Directories
 
-| Directory | Purpose |
+|Directory|Purpose|
 |---|---|
-| `src/` | Desktop frontend: React + Vite + Tailwind 4. Entry: `main.tsx` → `App.tsx` → `AppContent` |
-| `src-tauri/` | Rust backend: Tauri commands, AI provider integrations, `.icns` export, window lifecycle |
-| `web/` | Astro 6 web app: React components + API route. Deployed to Cloudflare Workers |
-| `packages/utils/` | Shared TypeScript: types, hooks, squircle math, provider config, model lists |
-| `packages/ui/` | Shared React components: `MacOSIcon`, `PromptInput`, `Select`, modals, theme provider |
-| `.github/workflows/` | CI/CD: `release-tauri.yml` — builds desktop on tag push `v*` (macOS ARM64/AMD64, Linux, Windows, Android) |
+|`src/`|Desktop frontend: React + Vite + Tailwind 4. Entry: `main.tsx` → `App.tsx` → `AppContent`|
+|`src-tauri/`|Rust backend: Tauri commands, AI provider integrations, `.icns` export, window lifecycle|
+|`web/`|Astro 6 web app: React components + API route. Deployed to Cloudflare Workers|
+|`packages/utils/`|Shared TypeScript: types, hooks, squircle math, provider config, model lists|
+|`packages/ui/`|Shared React components: `MacOSIcon`, `PromptInput`, `Select`, modals, theme provider|
+|`.github/workflows/`|CI/CD: `release-tauri.yml` — builds desktop on tag push `v*` (macOS ARM64/AMD64, Linux, Windows, Android)|
 
 ## Development Commands
 
@@ -128,24 +128,24 @@ Must update ALL of:
 
 ## Important Files
 
-| File | Role |
+|File|Role|
 |---|---|
-| `packages/utils/src/transport.ts` | `Transport` interface — the contract between frontend and backend |
-| `packages/utils/src/icon-pipeline.ts` | `useIconPipeline` — generation pipeline + squircle masking |
-| `packages/utils/src/use-app-workflow.ts` | `useAppWorkflow` — user-facing workflow state machine |
-| `packages/utils/src/squircle.ts` | Squircle math: Lamé curve paths, clip constants, border calculations |
-| `packages/utils/src/api-key-config.ts` | `Provider` type + `PROVIDER_CONFIG` (labels, URL patterns) |
-| `packages/utils/src/model-config.ts` | `MODEL_LIST` + `getDefaultModel` per provider |
-| `src/components/app-content.tsx` | Desktop workflow UI: provider/model select, save, modals |
-| `web/src/components/web-app-content.tsx` | Web workflow UI (mirrors desktop with web-specific download) |
-| `src/lib/tauri-transport.ts` | Desktop Transport: `invoke()` → Tauri IPC |
-| `web/src/lib/web-transport.ts` | Web Transport: `invoke()` → `fetch("/api/generate")` |
-| `web/src/pages/api/generate.ts` | Astro API route: proxies AI provider requests |
-| `src-tauri/src/lib.rs` | Rust backend: all commands, provider integrations, `.icns` export, window lifecycle |
-| `src-tauri/tauri.conf.json` | Tauri config: window 550x520, non-resizable, dev/build commands |
-| `vite.config.ts` | Vite config: React plugin, `@/` alias, Tauri dev host detection |
-| `web/astro.config.mjs` | Astro config: React + Tailwind + CF Workers adapter |
-| `.github/workflows/release-tauri.yml` | Release CI: 5-platform build matrix + Android APK/AAB |
+|`packages/utils/src/transport.ts`|`Transport` interface — the contract between frontend and backend|
+|`packages/utils/src/icon-pipeline.ts`|`useIconPipeline` — generation pipeline + squircle masking|
+|`packages/utils/src/use-app-workflow.ts`|`useAppWorkflow` — user-facing workflow state machine|
+|`packages/utils/src/squircle.ts`|Squircle math: Lamé curve paths, clip constants, border calculations|
+|`packages/utils/src/api-key-config.ts`|`Provider` type + `PROVIDER_CONFIG` (labels, URL patterns)|
+|`packages/utils/src/model-config.ts`|`MODEL_LIST` + `getDefaultModel` per provider|
+|`src/components/app-content.tsx`|Desktop workflow UI: provider/model select, save, modals|
+|`web/src/components/web-app-content.tsx`|Web workflow UI (mirrors desktop with web-specific download)|
+|`src/lib/tauri-transport.ts`|Desktop Transport: `invoke()` → Tauri IPC|
+|`web/src/lib/web-transport.ts`|Web Transport: `invoke()` → `fetch("/api/generate")`|
+|`web/src/pages/api/generate.ts`|Astro API route: proxies AI provider requests|
+|`src-tauri/src/lib.rs`|Rust backend: all commands, provider integrations, `.icns` export, window lifecycle|
+|`src-tauri/tauri.conf.json`|Tauri config: window 550x520, non-resizable, dev/build commands|
+|`vite.config.ts`|Vite config: React plugin, `@/` alias, Tauri dev host detection|
+|`web/astro.config.mjs`|Astro config: React + Tailwind + CF Workers adapter|
+|`.github/workflows/release-tauri.yml`|Release CI: 5-platform build matrix + Android APK/AAB|
 
 ## Runtime/Tooling Preferences
 

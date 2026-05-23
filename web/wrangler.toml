@@ -1,0 +1,15 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "app-icon-maker"
+main = "./dist/_worker.js/index.js"
+compatibility_date = "2025-05-22"
+compatibility_flags = ["nodejs_compat"]
+
+# KV namespace for sessions
+[[kv_namespaces]]
+binding = "SESSION"
+id = "082123960e0f4b9391f543f5b4586834"
+
+# Workers Assets: static assets served via ASSETS binding
+[assets]
+binding = "ASSETS"
+directory = "./dist"
