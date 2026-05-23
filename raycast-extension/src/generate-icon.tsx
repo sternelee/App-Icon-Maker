@@ -40,7 +40,6 @@ export default function Command() {
   const [hasReference, setHasReference] = useState(false);
 
   const models = MODEL_LIST[provider] || [];
-  const apiKey = prefs[API_KEY_MAP[provider]];
 
   function handleProviderChange(newProvider: string) {
     const p = newProvider as Provider;
@@ -146,7 +145,7 @@ export default function Command() {
         value={provider}
         onChange={handleProviderChange}
         info={
-          apiKey
+          prefs[API_KEY_MAP[provider]]
             ? "API key configured"
             : "API key not set — configure in extension preferences"
         }
@@ -156,7 +155,11 @@ export default function Command() {
             key={p.value}
             value={p.value}
             title={p.label}
-            icon={apiKey ? Icon.CheckCircle : Icon.ExclamationMark}
+            icon={
+              prefs[API_KEY_MAP[p.value]]
+                ? Icon.CheckCircle
+                : Icon.ExclamationMark
+            }
           />
         ))}
       </Form.Dropdown>
