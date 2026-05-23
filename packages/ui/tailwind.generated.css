@@ -386,6 +386,9 @@
   .min-w-\[88px\] {
     min-width: 88px;
   }
+  .min-w-\[260px\] {
+    min-width: 260px;
+  }
   .flex-1 {
     flex: 1;
   }

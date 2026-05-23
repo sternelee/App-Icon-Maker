@@ -248,7 +248,7 @@ export function AppContent() {
             }}
             disabled={wf.iconState === "generating"}
           >
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className="h-8 text-xs min-w-[260px]">
               <SelectValue placeholder="Select model">
                 {(() => {
                   const items = MODEL_LIST[provider] || [];
@@ -257,7 +257,7 @@ export function AppContent() {
                 })()}
               </SelectValue>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="mt-1.5">
               {provider !== "fal" && MODEL_LIST[provider] && (
                 <SelectGroup>
                   {MODEL_LIST[provider].map((m) => (

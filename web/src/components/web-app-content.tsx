@@ -185,7 +185,7 @@ export function WebAppContent() {
             }}
             disabled={wf.iconState === "generating"}
           >
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className="h-8 text-xs min-w-[260px]">
               <SelectValue placeholder="Select model">
                 {(() => {
                   const items = MODEL_LIST[provider] || [];
