@@ -13,6 +13,8 @@ struct AppState {
     gemini_api_key: Mutex<String>,
     openrouter_api_key: Mutex<String>,
     fal_api_key: Mutex<String>,
+    stepfun_api_key: Mutex<String>,
+
     has_unsaved_icon: Mutex<bool>,
 }
 
@@ -21,6 +23,8 @@ const OPENAI_API_KEY_KEY: &str = "openai.api_key";
 const GEMINI_API_KEY_KEY: &str = "gemini.api_key";
 const OPENROUTER_API_KEY_KEY: &str = "openrouter.api_key";
 const FAL_API_KEY_KEY: &str = "fal.api_key";
+const STEPFUN_API_KEY_KEY: &str = "stepfun.api_key";
+
 
 // ---------------------------------------------------------------------------
 // Icon resize constants
@@ -898,6 +902,186 @@ async fn fal_generate_images(
     Ok(images)
 }
 
+// ---------------------------------------------------------------------------
+// Stepfun API interaction
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize)]
+struct StepfunGenerationRequest {
+    model: String,
+    prompt: String,
+    size: String,
+    n: u32,
+    response_format: String,
+    seed: u32,
+}
+
+#[derive(Deserialize)]
+struct StepfunImageData {
+	b64_json: String,
+	#[serde(default)]
+	#[allow(dead_code)]
+	finish_reason: Option<String>,
+	#[serde(default)]
+	#[allow(dead_code)]
+	seed: Option<u32>,
+}
+
+#[derive(Deserialize)]
+struct StepfunGenerationResponse {
+    data: Vec<StepfunImageData>,
+}
+
+async fn stepfun_generate_images(
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+    seed: i32,
+) -> Result<Vec<String>, String> {
+    let client = reqwest::Client::new();
+    let url = "https://api.stepfun.com/v1/images/generations";
+
+    let mut handles = Vec::new();
+    for i in 0..3 {
+        let payload = StepfunGenerationRequest {
+            model: model.to_string(),
+            prompt: prompt.to_string(),
+            size: "1024x1024".to_string(),
+            n: 1,
+            response_format: "b64_json".to_string(),
+			seed: if seed == 0 {
+				(std::time::SystemTime::now()
+					.duration_since(std::time::UNIX_EPOCH)
+					.unwrap_or_default()
+					.as_secs() as u32)
+					.wrapping_add(i)
+			} else {
+				(seed as u32).wrapping_add(i)
+			},
+        };
+
+        let client = client.clone();
+        let api_key = api_key.to_string();
+        let url = url.to_string();
+
+        handles.push(tokio::spawn(async move {
+            let res = client
+                .post(&url)
+                .header("Content-Type", "application/json")
+                .header("Authorization", format!("Bearer {}", api_key))
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| format!("Stepfun network error: {}", e))?;
+
+            if !res.status().is_success() {
+                let status = res.status();
+                let body = res.text().await.unwrap_or_default();
+                return Err(format!("Stepfun API error {}: {}", status, body));
+            }
+
+            let json: StepfunGenerationResponse = res
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse Stepfun response: {}", e))?;
+
+            let images: Vec<String> = json.data.into_iter().map(|d| d.b64_json).collect();
+            if images.is_empty() {
+                return Err("Stepfun returned no image data.".to_string());
+            }
+            Ok(images.into_iter().next().unwrap())
+        }));
+    }
+
+    let mut images = Vec::new();
+    for h in handles {
+        match h.await {
+            Ok(Ok(b64)) => images.push(b64),
+            Ok(Err(e)) => return Err(e),
+            Err(e) => return Err(format!("Task failed: {}", e)),
+        }
+    }
+
+    if images.is_empty() {
+        return Err("Stepfun returned no image data.".to_string());
+    }
+    Ok(images)
+}
+
+async fn stepfun_edit_images(
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+    reference_b64: &str,
+) -> Result<Vec<String>, String> {
+    let image_bytes = base64::engine::general_purpose::STANDARD
+        .decode(reference_b64)
+        .map_err(|e| format!("Invalid base64 reference image: {}", e))?;
+
+    let client = reqwest::Client::new();
+    let url = "https://api.stepfun.com/v1/images/edits";
+
+    let mut handles = Vec::new();
+    for _ in 0..3 {
+        let part = reqwest::multipart::Part::bytes(image_bytes.clone())
+            .file_name("reference.png")
+            .mime_str("image/png")
+            .map_err(|e| format!("Failed to create multipart: {}", e))?;
+
+        let form = reqwest::multipart::Form::new()
+            .text("model", model.to_string())
+            .text("prompt", prompt.to_string())
+            .text("response_format", "b64_json".to_string())
+            .part("image", part);
+
+        let client = client.clone();
+        let api_key = api_key.to_string();
+        let url = url.to_string();
+
+        handles.push(tokio::spawn(async move {
+            let res = client
+                .post(&url)
+                .header("Authorization", format!("Bearer {}", api_key))
+                .multipart(form)
+                .send()
+                .await
+                .map_err(|e| format!("Stepfun network error: {}", e))?;
+
+            if !res.status().is_success() {
+                let status = res.status();
+                let body = res.text().await.unwrap_or_default();
+                return Err(format!("Stepfun API error {}: {}", status, body));
+            }
+
+            let json: StepfunGenerationResponse = res
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse Stepfun response: {}", e))?;
+
+            let images: Vec<String> = json.data.into_iter().map(|d| d.b64_json).collect();
+            if images.is_empty() {
+                return Err("Stepfun returned no image data.".to_string());
+            }
+            Ok(images.into_iter().next().unwrap())
+        }));
+    }
+
+    let mut images = Vec::new();
+    for h in handles {
+        match h.await {
+            Ok(Ok(b64)) => images.push(b64),
+            Ok(Err(e)) => return Err(e),
+            Err(e) => return Err(format!("Task failed: {}", e)),
+        }
+    }
+
+    if images.is_empty() {
+        return Err("Stepfun returned no image data.".to_string());
+    }
+    Ok(images)
+}
+
+
 #[tauri::command]
 fn set_openai_api_key(
     api_key: String,
@@ -1059,6 +1243,51 @@ fn get_stored_openrouter_api_key(state: State<AppState>) -> Result<StoredApiKey,
     })
 }
 
+
+// ---------------------------------------------------------------------------
+// Stepfun API key management
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+fn set_stepfun_api_key(
+    api_key: String,
+    app: tauri::AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let trimmed = api_key.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("API key cannot be empty.".to_string());
+    }
+    if let Ok(store) = app.store(STORE_FILE) {
+        store.set(
+            STEPFUN_API_KEY_KEY,
+            serde_json::Value::String(trimmed.clone()),
+        );
+        let _ = store.save();
+    }
+    let mut key = state.stepfun_api_key.lock().map_err(|e| e.to_string())?;
+    *key = trimmed;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_stepfun_api_key_status(state: State<AppState>) -> Result<ApiKeyStatus, String> {
+    let key = state.stepfun_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(ApiKeyStatus {
+        key_required: true,
+        has_key: !key.is_empty(),
+    })
+}
+
+#[tauri::command]
+fn get_stored_stepfun_api_key(state: State<AppState>) -> Result<StoredApiKey, String> {
+    let key = state.stepfun_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(StoredApiKey {
+        api_key: key.clone(),
+    })
+}
+
+
 #[tauri::command]
 fn set_unsaved_icon_state(unsaved: bool, state: State<AppState>) -> Result<(), String> {
     let mut s = state.has_unsaved_icon.lock().map_err(|e| e.to_string())?;
@@ -1083,6 +1312,7 @@ async fn generate_icon(
             "gemini" => "gemini-2.5-flash-image",
             "openrouter" => "google/gemini-2.5-flash-image",
             "fal" => "fal-ai/nano-banana",
+            "stepfun" => "step-image-edit-2",
             _ => "gpt-image-1",
         }
     } else {
@@ -1108,6 +1338,23 @@ async fn generate_icon(
             let images = fal_generate_images(&api_key, model_name, &full_prompt, reference_b64, 3).await?;
             Ok(GenerateIconResponse { images })
         }
+        "stepfun" => {
+            let api_key = {
+                let key = state.stepfun_api_key.lock().map_err(|e| e.to_string())?;
+                if key.is_empty() {
+                    return Err("No Stepfun API key. Add one in the settings.".to_string());
+                }
+                key.clone()
+            };
+
+            let images = if reference_image.is_empty() {
+                stepfun_generate_images(&api_key, model_name, &full_prompt, seed).await?
+            } else {
+                stepfun_edit_images(&api_key, model_name, &full_prompt, &reference_image).await?
+            };
+            Ok(GenerateIconResponse { images })
+        }
+
         "openrouter" => {
             let api_key = {
                 let key = state.openrouter_api_key.lock().map_err(|e| e.to_string())?;
@@ -1336,6 +1583,8 @@ pub fn run() {
             gemini_api_key: Mutex::new(String::new()),
             openrouter_api_key: Mutex::new(String::new()),
             fal_api_key: Mutex::new(String::new()),
+            stepfun_api_key: Mutex::new(String::new()),
+
             has_unsaved_icon: Mutex::new(false),
         })
         .setup(|app| {
@@ -1376,6 +1625,16 @@ pub fn run() {
                         };
                     }
                 }
+                // Load Stepfun API key
+                if let Some(val) = store.get(STEPFUN_API_KEY_KEY) {
+                    if let Some(key_str) = val.as_str() {
+                        let state = app.state::<AppState>();
+                        if let Ok(mut key) = state.stepfun_api_key.lock() {
+                            *key = key_str.to_string();
+                        };
+                    }
+                }
+
             }
             Ok(())
         })
@@ -1405,6 +1664,9 @@ pub fn run() {
             set_openrouter_api_key,
             get_openrouter_api_key_status,
             get_stored_openrouter_api_key,
+            set_stepfun_api_key,
+            get_stepfun_api_key_status,
+            get_stored_stepfun_api_key,
             set_unsaved_icon_state,
             read_file_as_base64,
         ])

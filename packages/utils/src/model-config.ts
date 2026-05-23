@@ -45,6 +45,11 @@ export const MODEL_LIST: Record<Provider, { value: string; label: string }[]> =
       },
       { value: "fal-ai/qwen-image-edit-2511", label: "Qwen Image Edit" },
     ],
+    stepfun: [
+      { value: "step-image-edit-2", label: "step-image-edit-2" },
+      { value: "step-2x-large", label: "step-2x-large" },
+      { value: "step-1x-medium", label: "step-1x-medium" },
+    ],
   };
 
 export function getDefaultModel(provider: Provider): string {

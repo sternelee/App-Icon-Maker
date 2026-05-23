@@ -3,6 +3,7 @@ const STORAGE_KEYS: Record<string, string> = {
   gemini: "app-icon-maker:api-key:gemini",
   openrouter: "app-icon-maker:api-key:openrouter",
   fal: "app-icon-maker:api-key:fal",
+  stepfun: "app-icon-maker:api-key:stepfun",
 };
 
 export function getApiKey(provider: string): string | null {

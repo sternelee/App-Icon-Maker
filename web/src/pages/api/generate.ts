@@ -215,6 +215,68 @@ export const POST: APIRoute = async ({ request }) => {
         );
       }
 
+      case "stepfun": {
+        const url = referenceImage
+          ? "https://api.stepfun.com/v1/images/edits"
+          : "https://api.stepfun.com/v1/images/generations";
+
+        const requests = Array.from({ length: 3 }).map(async () => {
+          if (referenceImage) {
+            const formData = new FormData();
+            formData.append("model", model || "step-image-edit-2");
+            formData.append("image", b64toBlob(referenceImage), "image.png");
+            formData.append("prompt", `${systemPrefix} ${prompt}`);
+            formData.append("response_format", "b64_json");
+
+            const res = await fetch(url, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${apiKey}` },
+              body: formData,
+            });
+
+            if (!res.ok) {
+              const err = await res.text();
+              throw new Error(err);
+            }
+
+            const data = await res.json();
+            return data.data?.[0]?.b64_json;
+          } else {
+            const res = await fetch(url, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${apiKey}`,
+              },
+              body: JSON.stringify({
+                model: model || "step-image-edit-2",
+                prompt: `${systemPrefix} ${prompt}`,
+                size: "1024x1024",
+                n: 1,
+                response_format: "b64_json",
+                seed: Math.floor(Math.random() * 2147483647),
+              }),
+            });
+
+            if (!res.ok) {
+              const err = await res.text();
+              throw new Error(err);
+            }
+
+            const data = await res.json();
+            return data.data?.[0]?.b64_json;
+          }
+        });
+
+        try {
+          const images = await Promise.all(requests);
+          return new Response(JSON.stringify({ images: images.filter(Boolean) }));
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          return new Response(JSON.stringify({ images: [], error: msg }));
+        }
+      }
+
       default:
         return new Response(
           JSON.stringify({

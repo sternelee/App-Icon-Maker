@@ -1,4 +1,5 @@
-export type Provider = "openai" | "gemini" | "openrouter" | "fal";
+export type Provider = "openai" | "gemini" | "openrouter" | "fal" | "stepfun";
+
 
 export const PROVIDER_CONFIG: Record<
   Provider,
@@ -32,5 +33,11 @@ export const PROVIDER_CONFIG: Record<
     keyLabel: "OpenRouter API key",
     placeholder: "sk-or-v1-…",
     helpUrl: "https://openrouter.ai/keys",
+  },
+  stepfun: {
+    label: "Stepfun",
+    keyLabel: "Stepfun API key",
+    placeholder: "sk-…",
+    helpUrl: "https://platform.stepfun.com/docs/zh/api-reference/quickstart",
   },
 };

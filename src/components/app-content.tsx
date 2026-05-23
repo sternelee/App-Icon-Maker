@@ -58,6 +58,7 @@ export function AppContent() {
       { cmd: "get_gemini_api_key_status" },
       { cmd: "get_openrouter_api_key_status" },
       { cmd: "get_fal_api_key_status" },
+      { cmd: "get_stepfun_api_key_status" },
     ];
     Promise.all(
       providers.map((p) =>

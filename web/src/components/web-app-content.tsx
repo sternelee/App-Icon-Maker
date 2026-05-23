@@ -33,6 +33,7 @@ const transport = createWebTransport((provider) => {
     gemini: "app-icon-maker:api-key:gemini",
     openrouter: "app-icon-maker:api-key:openrouter",
     fal: "app-icon-maker:api-key:fal",
+    stepfun: "app-icon-maker:api-key:stepfun",
   };
   return localStorage.getItem(keys[provider] || "") || null;
 });
@@ -53,7 +54,7 @@ export function WebAppContent() {
   const [falInput, setFalInput] = useState("");
 
   useEffect(() => {
-    const providers: Provider[] = ["openai", "gemini", "openrouter", "fal"];
+    const providers: Provider[] = ["openai", "gemini", "openrouter", "fal", "stepfun"];
     if (!providers.some((p) => hasApiKey(p))) {
       setShowApiKeyModal(true);
     }
