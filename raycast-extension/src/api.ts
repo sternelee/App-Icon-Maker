@@ -4,12 +4,27 @@ import * as os from "node:os";
 import type { Provider } from "./config";
 import { SYSTEM_PREFIX } from "./config";
 
+function b64toBlob(b64: string): Blob {
+  const byteChars = atob(b64);
+  const byteArrays = [];
+  for (let offset = 0; offset < byteChars.length; offset += 512) {
+    const slice = byteChars.slice(offset, offset + 512);
+    const byteNums = new Array(slice.length);
+    for (let i = 0; i < slice.length; i++) {
+      byteNums[i] = slice.charCodeAt(i);
+    }
+    byteArrays.push(new Uint8Array(byteNums));
+  }
+  return new Blob(byteArrays, { type: "image/png" });
+}
+
 export interface GenerateOptions {
   provider: Provider;
   model: string;
   prompt: string;
   apiKey: string;
   numImages?: number;
+  referenceImage?: string; // base64 string without data: prefix
 }
 
 export interface GenerateResult {
@@ -20,7 +35,14 @@ export interface GenerateResult {
 export async function generateIcons(
   opts: GenerateOptions,
 ): Promise<GenerateResult> {
-  const { provider, model, prompt, apiKey, numImages = 3 } = opts;
+  const {
+    provider,
+    model,
+    prompt,
+    apiKey,
+    numImages = 3,
+    referenceImage,
+  } = opts;
 
   if (!apiKey) {
     return { images: [], error: "API key is required" };
@@ -28,15 +50,21 @@ export async function generateIcons(
 
   switch (provider) {
     case "openai":
-      return generateOpenAI(model, prompt, apiKey, numImages);
+      return generateOpenAI(model, prompt, apiKey, numImages, referenceImage);
     case "gemini":
-      return generateGemini(model, prompt, apiKey, numImages);
+      return generateGemini(model, prompt, apiKey, numImages, referenceImage);
     case "openrouter":
-      return generateOpenRouter(model, prompt, apiKey, numImages);
+      return generateOpenRouter(
+        model,
+        prompt,
+        apiKey,
+        numImages,
+        referenceImage,
+      );
     case "fal":
-      return generateFal(model, prompt, apiKey, numImages);
+      return generateFal(model, prompt, apiKey, numImages, referenceImage);
     case "stepfun":
-      return generateStepfun(model, prompt, apiKey, numImages);
+      return generateStepfun(model, prompt, apiKey, numImages, referenceImage);
     default:
       return { images: [], error: `Unknown provider: ${provider}` };
   }
@@ -47,15 +75,25 @@ async function generateOpenAI(
   prompt: string,
   apiKey: string,
   numImages: number,
+  referenceImage?: string,
 ): Promise<GenerateResult> {
+  const url = referenceImage
+    ? "https://api.openai.com/v1/images/edits"
+    : "https://api.openai.com/v1/images/generations";
+
   const formData = new FormData();
-  formData.append("prompt", `${SYSTEM_PREFIX} ${prompt}`);
+  if (referenceImage) {
+    formData.append("image", b64toBlob(referenceImage), "image.png");
+    formData.append("prompt", `${SYSTEM_PREFIX} ${prompt}`);
+  } else {
+    formData.append("prompt", `${SYSTEM_PREFIX} ${prompt}`);
+  }
   formData.append("model", model || "gpt-image-1");
   formData.append("n", String(numImages));
   formData.append("size", "1024x1024");
   formData.append("response_format", "b64_json");
 
-  const res = await fetch("https://api.openai.com/v1/images/generations", {
+  const res = await fetch(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}` },
     body: formData,
@@ -78,21 +116,27 @@ async function generateGemini(
   prompt: string,
   apiKey: string,
   numImages: number,
+  referenceImage?: string,
 ): Promise<GenerateResult> {
-  // Gemini generates 1 image per request; parallelize
   const requests = Array.from({ length: numImages }).map(async () => {
+    const parts: {
+      text?: string;
+      inline_data?: { mime_type: string; data: string };
+    }[] = [{ text: `${SYSTEM_PREFIX} ${prompt}` }];
+
+    if (referenceImage) {
+      parts.unshift({
+        inline_data: { mime_type: "image/png", data: referenceImage },
+      });
+    }
+
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model || "gemini-2.5-flash-image"}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: `${SYSTEM_PREFIX} ${prompt}` }],
-              role: "user",
-            },
-          ],
+          contents: [{ parts, role: "user" }],
         }),
       },
     );
@@ -123,8 +167,22 @@ async function generateOpenRouter(
   prompt: string,
   apiKey: string,
   numImages: number,
+  referenceImage?: string,
 ): Promise<GenerateResult> {
   const requests = Array.from({ length: numImages }).map(async () => {
+    const content: {
+      type: string;
+      text?: string;
+      image_url?: { url: string };
+    }[] = [{ type: "text", text: `${SYSTEM_PREFIX} ${prompt}` }];
+
+    if (referenceImage) {
+      content.push({
+        type: "image_url",
+        image_url: { url: `data:image/png;base64,${referenceImage}` },
+      });
+    }
+
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -133,12 +191,7 @@ async function generateOpenRouter(
       },
       body: JSON.stringify({
         model: model || "openai/gpt-5-image",
-        messages: [
-          {
-            role: "user",
-            content: [{ type: "text", text: `${SYSTEM_PREFIX} ${prompt}` }],
-          },
-        ],
+        messages: [{ role: "user", content }],
         n: 1,
       }),
     });
@@ -149,8 +202,8 @@ async function generateOpenRouter(
     }
 
     const data = await res.json();
-    const content = data.choices?.[0]?.message?.content || "";
-    const match = content.match(/data:image\/[^;]+;base64,([^"]+)/);
+    const rawContent = data.choices?.[0]?.message?.content || "";
+    const match = rawContent.match(/data:image\/[^;]+;base64,([^"]+)/);
     return match ? match[1] : null;
   });
 
@@ -168,19 +221,26 @@ async function generateFal(
   prompt: string,
   apiKey: string,
   numImages: number,
+  referenceImage?: string,
 ): Promise<GenerateResult> {
   const falModel = model || "fal-ai/nano-banana-2/edit";
+  const body: Record<string, unknown> = {
+    prompt: `${SYSTEM_PREFIX} ${prompt}`,
+    num_images: numImages,
+    image_size: "1024x1024",
+  };
+
+  if (referenceImage) {
+    body.image_url = `data:image/png;base64,${referenceImage}`;
+  }
+
   const queueRes = await fetch(`https://queue.fal.run/${falModel}`, {
     method: "POST",
     headers: {
       Authorization: `Key ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      prompt: `${SYSTEM_PREFIX} ${prompt}`,
-      num_images: numImages,
-      image_size: "1024x1024",
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!queueRes.ok) {
@@ -230,31 +290,58 @@ async function generateStepfun(
   prompt: string,
   apiKey: string,
   numImages: number,
+  referenceImage?: string,
 ): Promise<GenerateResult> {
+  const url = referenceImage
+    ? "https://api.stepfun.com/v1/images/edits"
+    : "https://api.stepfun.com/v1/images/generations";
+
   const requests = Array.from({ length: numImages }).map(async (_, i) => {
-    const res = await fetch("https://api.stepfun.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: model || "step-image-edit-2",
-        prompt: `${SYSTEM_PREFIX} ${prompt}`,
-        size: "1024x1024",
-        n: 1,
-        response_format: "b64_json",
-        seed: Math.floor(Math.random() * 2147483647) + i,
-      }),
-    });
+    if (referenceImage) {
+      const formData = new FormData();
+      formData.append("model", model || "step-image-edit-2");
+      formData.append("image", b64toBlob(referenceImage), "image.png");
+      formData.append("prompt", `${SYSTEM_PREFIX} ${prompt}`);
+      formData.append("response_format", "b64_json");
 
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(err);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}` },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err);
+      }
+
+      const data = await res.json();
+      return data.data?.[0]?.b64_json;
+    } else {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: model || "step-image-edit-2",
+          prompt: `${SYSTEM_PREFIX} ${prompt}`,
+          size: "1024x1024",
+          n: 1,
+          response_format: "b64_json",
+          seed: Math.floor(Math.random() * 2147483647) + i,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err);
+      }
+
+      const data = await res.json();
+      return data.data?.[0]?.b64_json;
     }
-
-    const data = await res.json();
-    return data.data?.[0]?.b64_json;
   });
 
   try {

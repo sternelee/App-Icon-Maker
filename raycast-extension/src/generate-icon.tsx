@@ -13,6 +13,7 @@ import type { Provider } from "./config";
 import { PROVIDERS, MODEL_LIST, getDefaultModel } from "./config";
 import { generateIcons } from "./api";
 import { ResultsView } from "./results";
+import { fileToBase64 } from "./utils";
 
 interface Preferences {
   openaiApiKey: string;
@@ -36,6 +37,7 @@ export default function Command() {
   const [provider, setProvider] = useState<Provider>("openai");
   const [model, setModel] = useState(getDefaultModel("openai"));
   const [isLoading, setIsLoading] = useState(false);
+  const [hasReference, setHasReference] = useState(false);
 
   const models = MODEL_LIST[provider] || [];
   const apiKey = prefs[API_KEY_MAP[provider]];
@@ -51,6 +53,7 @@ export default function Command() {
     model: string;
     prompt: string;
     numImages: string;
+    referenceImage: string[];
   }) {
     const p = values.provider as Provider;
     const key = prefs[API_KEY_MAP[p]];
@@ -73,10 +76,24 @@ export default function Command() {
       return;
     }
 
+    let referenceImage: string | undefined;
+    if (values.referenceImage && values.referenceImage.length > 0) {
+      try {
+        referenceImage = fileToBase64(values.referenceImage[0]);
+      } catch (err) {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "Invalid Reference Image",
+          message: err instanceof Error ? err.message : String(err),
+        });
+        return;
+      }
+    }
+
     setIsLoading(true);
     const toast = await showToast({
       style: Toast.Style.Animated,
-      title: "Generating icons...",
+      title: referenceImage ? "Refining icon..." : "Generating icons...",
     });
 
     const result = await generateIcons({
@@ -85,28 +102,38 @@ export default function Command() {
       prompt: values.prompt.trim(),
       apiKey: key,
       numImages: Number(values.numImages) || 3,
+      referenceImage,
     });
 
     setIsLoading(false);
 
     if (result.error || result.images.length === 0) {
       toast.style = Toast.Style.Failure;
-      toast.title = "Generation Failed";
+      toast.title = referenceImage ? "Refinement Failed" : "Generation Failed";
       toast.message = result.error || "No images returned";
       return;
     }
 
     toast.hide();
-    push(<ResultsView images={result.images} prompt={values.prompt.trim()} />);
+    push(
+      <ResultsView
+        images={result.images}
+        prompt={values.prompt.trim()}
+        provider={p}
+        model={values.model}
+        apiKey={key}
+      />,
+    );
   }
 
   return (
     <Form
       isLoading={isLoading}
+      navigationTitle="Generate App Icon"
       actions={
         <ActionPanel>
           <Action.SubmitForm
-            title="Generate Icon"
+            title={hasReference ? "Refine Icon" : "Generate Icon"}
             onSubmit={handleSubmit}
             icon={Icon.Wand}
           />
@@ -145,6 +172,14 @@ export default function Command() {
         title="Prompt"
         placeholder="A sleek camera app icon with gradient glass background..."
         info="Describe the app icon you want. The system will add macOS styling automatically."
+      />
+
+      <Form.FilePicker
+        id="referenceImage"
+        title="Reference Image"
+        allowMultipleSelection={false}
+        info="Optional: select an existing image to use as reference for refinement"
+        onChange={(files) => setHasReference(files && files.length > 0)}
       />
 
       <Form.Dropdown id="numImages" title="Variants" defaultValue="3">
