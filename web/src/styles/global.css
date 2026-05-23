@@ -4,6 +4,7 @@
 @source "../layouts";
 @source "../pages";
 @source "../../../packages/ui/src/components";
+@source "../../../src";
 
 @custom-variant dark (&:is(.dark *));
 

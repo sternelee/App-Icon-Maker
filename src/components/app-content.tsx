@@ -149,7 +149,7 @@ export function AppContent() {
     pipeline.status === "downloading" && pipeline.progress.label !== "";
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden select-none app-drag">
+    <div className="flex flex-col h-dvh bg-background text-foreground overflow-hidden select-none app-drag">
       <SquircleClipDefs />
 
       {wf.errorMessage && (
@@ -208,7 +208,7 @@ export function AppContent() {
         />
       )}
 
-      <div className="flex items-center px-4 pt-safe app-no-drag">
+      <div className="flex items-center px-4 pt-3 app-no-drag">
         {provider === "fal" && falCustom ? (
           <div className="flex items-center">
             <input
@@ -335,7 +335,7 @@ export function AppContent() {
         />
       </div>
 
-      <div className="flex flex-col items-center px-4 pb-safe app-no-drag">
+      <div className="flex flex-col items-center px-4 pb-6 app-no-drag">
         <PromptInput
           value={wf.prompt}
           onChange={wf.setPrompt}
