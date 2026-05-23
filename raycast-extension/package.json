@@ -1,0 +1,94 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "app-icon-maker",
+  "title": "App Icon Maker",
+  "description": "Generate macOS-style app icons with AI",
+  "license": "MIT",
+  "icon": "extension-icon.png",
+  "author": "sterne_lee",
+  "categories": [
+    "Design Tools",
+    "Productivity",
+    "Developer Tools"
+  ],
+  "platforms": [
+    "macOS"
+  ],
+  "commands": [
+    {
+      "name": "generate-icon",
+      "title": "Generate App Icon",
+      "subtitle": "App Icon Maker",
+      "description": "Generate macOS-style app icons using AI",
+      "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "openaiApiKey",
+      "title": "OpenAI API Key",
+      "description": "API key for OpenAI image generation",
+      "type": "password",
+      "required": false,
+      "placeholder": "sk-..."
+    },
+    {
+      "name": "geminiApiKey",
+      "title": "Google Gemini API Key",
+      "description": "API key for Google Gemini image generation",
+      "type": "password",
+      "required": false,
+      "placeholder": "AIza..."
+    },
+    {
+      "name": "openrouterApiKey",
+      "title": "OpenRouter API Key",
+      "description": "API key for OpenRouter",
+      "type": "password",
+      "required": false,
+      "placeholder": "sk-or-v1-..."
+    },
+    {
+      "name": "falApiKey",
+      "title": "Fal.ai API Key",
+      "description": "API key for Fal.ai image generation",
+      "type": "password",
+      "required": false,
+      "placeholder": "..."
+    },
+    {
+      "name": "stepfunApiKey",
+      "title": "Stepfun API Key",
+      "description": "API key for Stepfun image generation",
+      "type": "password",
+      "required": false,
+      "placeholder": "sk-..."
+    },
+    {
+      "name": "saveDirectory",
+      "title": "Default Save Directory",
+      "description": "Default directory to save generated icons (fallbacks to Downloads)",
+      "type": "directory",
+      "required": false
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^1.103.0",
+    "@raycast/utils": "^2.2.1"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^2.0.4",
+    "@types/node": "22.19.17",
+    "@types/react": "19.0.10",
+    "eslint": "^9.22.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2"
+  },
+  "scripts": {
+    "build": "ray build",
+    "dev": "ray develop",
+    "fix-lint": "ray lint --fix",
+    "lint": "ray lint",
+    "publish": "npx @raycast/api@latest publish"
+  }
+}
