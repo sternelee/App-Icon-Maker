@@ -12,7 +12,7 @@ export function WebApiKeyModal({
   defaultProvider: Provider;
   onClose: (savedProvider?: Provider) => void;
 }) {
-  const hasAny = ["openai", "gemini", "openrouter", "fal" as Provider].some(
+  const hasAny = ["openai", "gemini", "openrouter", "fal", "stepfun", "agnes" as Provider].some(
     (p) => hasApiKey(p),
   );
 

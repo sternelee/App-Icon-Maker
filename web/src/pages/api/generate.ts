@@ -277,6 +277,62 @@ export const POST: APIRoute = async ({ request }) => {
         }
       }
 
+      case "agnes": {
+        const url = "https://apihub.agnes-ai.com/v1/images/generations";
+
+        const requests = Array.from({ length: 3 }).map(async () => {
+          const body: Record<string, any> = {
+            model: model || "agnes-image-2.1-flash",
+            prompt: `${systemPrefix} ${prompt}`,
+            size: "1024x1024",
+          };
+
+          if (referenceImage) {
+            body.extra_body = {
+              image: [`data:image/png;base64,${referenceImage}`],
+              response_format: "b64_json",
+            };
+          } else {
+            body.return_base64 = true;
+          }
+
+          const res = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify(body),
+          });
+
+          if (!res.ok) {
+            const err = await res.text();
+            throw new Error(err);
+          }
+
+          const data = await res.json();
+          const item = data.data?.[0];
+          if (item?.b64_json) return item.b64_json;
+          if (item?.url) {
+            const imgRes = await fetch(item.url);
+            const imgBlob = await imgRes.blob();
+            const buffer = await imgBlob.arrayBuffer();
+            return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+          }
+          return null;
+        });
+
+        try {
+          const images = await Promise.all(requests);
+          return new Response(
+            JSON.stringify({ images: images.filter(Boolean) }),
+          );
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          return new Response(JSON.stringify({ images: [], error: msg }));
+        }
+      }
+
       default:
         return new Response(
           JSON.stringify({

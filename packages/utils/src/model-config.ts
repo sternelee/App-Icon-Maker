@@ -50,6 +50,10 @@ export const MODEL_LIST: Record<Provider, { value: string; label: string }[]> =
       { value: "step-2x-large", label: "step-2x-large" },
       { value: "step-1x-medium", label: "step-1x-medium" },
     ],
+    agnes: [
+      { value: "agnes-image-2.1-flash", label: "Agnes Image 2.1 Flash" },
+      { value: "agnes-image-2.0-flash", label: "Agnes Image 2.0 Flash" },
+    ],
   };
 
 export function getDefaultModel(provider: Provider): string {

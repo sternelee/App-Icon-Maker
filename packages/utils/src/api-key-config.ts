@@ -1,4 +1,4 @@
-export type Provider = "openai" | "gemini" | "openrouter" | "fal" | "stepfun";
+export type Provider = "openai" | "gemini" | "openrouter" | "fal" | "stepfun" | "agnes";
 
 
 export const PROVIDER_CONFIG: Record<
@@ -39,5 +39,11 @@ export const PROVIDER_CONFIG: Record<
     keyLabel: "Stepfun API key",
     placeholder: "sk-…",
     helpUrl: "https://platform.stepfun.com/docs/zh/api-reference/quickstart",
+  },
+  agnes: {
+    label: "Agnes",
+    keyLabel: "Agnes API key",
+    placeholder: "…",
+    helpUrl: "https://agnes-ai.com/doc/agnes-image-21-flash",
   },
 };

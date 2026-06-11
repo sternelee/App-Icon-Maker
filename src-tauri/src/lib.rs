@@ -14,6 +14,7 @@ struct AppState {
     openrouter_api_key: Mutex<String>,
     fal_api_key: Mutex<String>,
     stepfun_api_key: Mutex<String>,
+    agnes_api_key: Mutex<String>,
 
     has_unsaved_icon: Mutex<bool>,
 }
@@ -24,6 +25,7 @@ const GEMINI_API_KEY_KEY: &str = "gemini.api_key";
 const OPENROUTER_API_KEY_KEY: &str = "openrouter.api_key";
 const FAL_API_KEY_KEY: &str = "fal.api_key";
 const STEPFUN_API_KEY_KEY: &str = "stepfun.api_key";
+const AGNES_API_KEY_KEY: &str = "agnes.api_key";
 
 
 // ---------------------------------------------------------------------------
@@ -1081,6 +1083,208 @@ async fn stepfun_edit_images(
     Ok(images)
 }
 
+// ---------------------------------------------------------------------------
+// Agnes API interaction
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize)]
+struct AgnesGenerationRequest {
+    model: String,
+    prompt: String,
+    size: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    return_base64: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    extra_body: Option<AgnesExtraBody>,
+}
+
+#[derive(Serialize)]
+struct AgnesExtraBody {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    response_format: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    image: Option<Vec<String>>,
+}
+
+#[derive(Deserialize)]
+struct AgnesImageData {
+    #[serde(default)]
+    url: Option<String>,
+    #[serde(default)]
+    b64_json: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct AgnesGenerationResponse {
+    data: Vec<AgnesImageData>,
+}
+
+async fn agnes_generate_images(
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+    count: u32,
+) -> Result<Vec<String>, String> {
+    let client = reqwest::Client::new();
+    let url = "https://apihub.agnes-ai.com/v1/images/generations";
+
+    let mut handles = Vec::new();
+    for _ in 0..count.min(3) {
+        let payload = AgnesGenerationRequest {
+            model: model.to_string(),
+            prompt: prompt.to_string(),
+            size: "1024x1024".to_string(),
+            return_base64: Some(true),
+            extra_body: None,
+        };
+
+        let client = client.clone();
+        let api_key = api_key.to_string();
+        let url = url.to_string();
+
+        handles.push(tokio::spawn(async move {
+            let res = client
+                .post(&url)
+                .header("Content-Type", "application/json")
+                .header("Authorization", format!("Bearer {}", api_key))
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| format!("Agnes network error: {}", e))?;
+
+            if !res.status().is_success() {
+                let status = res.status();
+                let body = res.text().await.unwrap_or_default();
+                return Err(format!("Agnes API error {}: {}", status, body));
+            }
+
+            let json: AgnesGenerationResponse = res
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse Agnes response: {}", e))?;
+
+            if let Some(item) = json.data.into_iter().next() {
+                if let Some(b64) = item.b64_json {
+                    return Ok(b64);
+                }
+                if let Some(url) = item.url {
+                    // Fetch image from URL and encode as base64
+                    let img_res = client
+                        .get(&url)
+                        .send()
+                        .await
+                        .map_err(|e| format!("Failed to download Agnes image: {}", e))?;
+                    let img_bytes = img_res
+                        .bytes()
+                        .await
+                        .map_err(|e| format!("Failed to read Agnes image: {}", e))?;
+                    let b64 = base64::engine::general_purpose::STANDARD.encode(&img_bytes);
+                    return Ok(b64);
+                }
+            }
+            Err("Agnes returned no image data.".to_string())
+        }));
+    }
+
+    let mut images = Vec::new();
+    for h in handles {
+        match h.await {
+            Ok(Ok(b64)) => images.push(b64),
+            Ok(Err(e)) => return Err(e),
+            Err(e) => return Err(format!("Task failed: {}", e)),
+        }
+    }
+
+    if images.is_empty() {
+        return Err("Agnes returned no image data.".to_string());
+    }
+    Ok(images)
+}
+
+async fn agnes_edit_images(
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+    reference_b64: &str,
+    count: u32,
+) -> Result<Vec<String>, String> {
+    let client = reqwest::Client::new();
+    let url = "https://apihub.agnes-ai.com/v1/images/generations";
+
+    let mut handles = Vec::new();
+    for _ in 0..count.min(3) {
+        let payload = AgnesGenerationRequest {
+            model: model.to_string(),
+            prompt: prompt.to_string(),
+            size: "1024x1024".to_string(),
+            return_base64: None,
+            extra_body: Some(AgnesExtraBody {
+                response_format: Some("b64_json".to_string()),
+                image: Some(vec![format!("data:image/png;base64,{}", reference_b64)]),
+            }),
+        };
+
+        let client = client.clone();
+        let api_key = api_key.to_string();
+        let url = url.to_string();
+
+        handles.push(tokio::spawn(async move {
+            let res = client
+                .post(&url)
+                .header("Content-Type", "application/json")
+                .header("Authorization", format!("Bearer {}", api_key))
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| format!("Agnes network error: {}", e))?;
+
+            if !res.status().is_success() {
+                let status = res.status();
+                let body = res.text().await.unwrap_or_default();
+                return Err(format!("Agnes API error {}: {}", status, body));
+            }
+
+            let json: AgnesGenerationResponse = res
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse Agnes response: {}", e))?;
+
+            if let Some(item) = json.data.into_iter().next() {
+                if let Some(b64) = item.b64_json {
+                    return Ok(b64);
+                }
+                if let Some(url) = item.url {
+                    let img_res = client
+                        .get(&url)
+                        .send()
+                        .await
+                        .map_err(|e| format!("Failed to download Agnes image: {}", e))?;
+                    let img_bytes = img_res
+                        .bytes()
+                        .await
+                        .map_err(|e| format!("Failed to read Agnes image: {}", e))?;
+                    let b64 = base64::engine::general_purpose::STANDARD.encode(&img_bytes);
+                    return Ok(b64);
+                }
+            }
+            Err("Agnes returned no image data.".to_string())
+        }));
+    }
+
+    let mut images = Vec::new();
+    for h in handles {
+        match h.await {
+            Ok(Ok(b64)) => images.push(b64),
+            Ok(Err(e)) => return Err(e),
+            Err(e) => return Err(format!("Task failed: {}", e)),
+        }
+    }
+
+    if images.is_empty() {
+        return Err("Agnes returned no image data.".to_string());
+    }
+    Ok(images)
+}
 
 #[tauri::command]
 fn set_openai_api_key(
@@ -1288,6 +1492,49 @@ fn get_stored_stepfun_api_key(state: State<AppState>) -> Result<StoredApiKey, St
 }
 
 
+// ---------------------------------------------------------------------------
+// Agnes API key management
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+fn set_agnes_api_key(
+    api_key: String,
+    app: tauri::AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let trimmed = api_key.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("API key cannot be empty.".to_string());
+    }
+    if let Ok(store) = app.store(STORE_FILE) {
+        store.set(
+            AGNES_API_KEY_KEY,
+            serde_json::Value::String(trimmed.clone()),
+        );
+        let _ = store.save();
+    }
+    let mut key = state.agnes_api_key.lock().map_err(|e| e.to_string())?;
+    *key = trimmed;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_agnes_api_key_status(state: State<AppState>) -> Result<ApiKeyStatus, String> {
+    let key = state.agnes_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(ApiKeyStatus {
+        key_required: true,
+        has_key: !key.is_empty(),
+    })
+}
+
+#[tauri::command]
+fn get_stored_agnes_api_key(state: State<AppState>) -> Result<StoredApiKey, String> {
+    let key = state.agnes_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(StoredApiKey {
+        api_key: key.clone(),
+    })
+}
+
 #[tauri::command]
 fn set_unsaved_icon_state(unsaved: bool, state: State<AppState>) -> Result<(), String> {
     let mut s = state.has_unsaved_icon.lock().map_err(|e| e.to_string())?;
@@ -1313,6 +1560,7 @@ async fn generate_icon(
             "openrouter" => "google/gemini-2.5-flash-image",
             "fal" => "fal-ai/nano-banana",
             "stepfun" => "step-image-edit-2",
+            "agnes" => "agnes-image-2.1-flash",
             _ => "gpt-image-1",
         }
     } else {
@@ -1351,6 +1599,22 @@ async fn generate_icon(
                 stepfun_generate_images(&api_key, model_name, &full_prompt, seed).await?
             } else {
                 stepfun_edit_images(&api_key, model_name, &full_prompt, &reference_image).await?
+            };
+            Ok(GenerateIconResponse { images })
+        }
+        "agnes" => {
+            let api_key = {
+                let key = state.agnes_api_key.lock().map_err(|e| e.to_string())?;
+                if key.is_empty() {
+                    return Err("No Agnes API key. Add one in the settings.".to_string());
+                }
+                key.clone()
+            };
+
+            let images = if reference_image.is_empty() {
+                agnes_generate_images(&api_key, model_name, &full_prompt, 3).await?
+            } else {
+                agnes_edit_images(&api_key, model_name, &full_prompt, &reference_image, 3).await?
             };
             Ok(GenerateIconResponse { images })
         }
@@ -1584,6 +1848,7 @@ pub fn run() {
             openrouter_api_key: Mutex::new(String::new()),
             fal_api_key: Mutex::new(String::new()),
             stepfun_api_key: Mutex::new(String::new()),
+            agnes_api_key: Mutex::new(String::new()),
 
             has_unsaved_icon: Mutex::new(false),
         })
@@ -1634,6 +1899,15 @@ pub fn run() {
                         };
                     }
                 }
+                // Load Agnes API key
+                if let Some(val) = store.get(AGNES_API_KEY_KEY) {
+                    if let Some(key_str) = val.as_str() {
+                        let state = app.state::<AppState>();
+                        if let Ok(mut key) = state.agnes_api_key.lock() {
+                            *key = key_str.to_string();
+                        };
+                    }
+                }
 
             }
             Ok(())
@@ -1667,6 +1941,9 @@ pub fn run() {
             set_stepfun_api_key,
             get_stepfun_api_key_status,
             get_stored_stepfun_api_key,
+            set_agnes_api_key,
+            get_agnes_api_key_status,
+            get_stored_agnes_api_key,
             set_unsaved_icon_state,
             read_file_as_base64,
         ])

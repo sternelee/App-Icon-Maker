@@ -16,6 +16,7 @@ const CMD_MAP: Record<Provider, { get: string; set: string }> = {
     set: "set_openrouter_api_key",
   },
   stepfun: { get: "get_stored_stepfun_api_key", set: "set_stepfun_api_key" },
+  agnes: { get: "get_stored_agnes_api_key", set: "set_agnes_api_key" },
 };
 
 async function persistKey(
