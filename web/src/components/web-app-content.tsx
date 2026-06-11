@@ -145,7 +145,7 @@ export function WebAppContent() {
         />
       )}
 
-      <div className="flex items-center px-4 pt-3">
+      <div className="flex items-center px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
         {provider === "fal" && falCustom ? (
           <div className="flex items-center">
             <input
@@ -270,7 +270,7 @@ export function WebAppContent() {
         />
       </div>
 
-      <div className="flex flex-col items-center px-4 pb-6">
+      <div className="flex flex-col items-center px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         <PromptInput
           value={wf.prompt}
           onChange={wf.setPrompt}
