@@ -34,8 +34,18 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 
 export function AppContent() {
-  const [provider, setProvider] = useState<Provider>("openai");
-  const [model, setModel] = useState("gpt-image-1");
+  const [provider, setProvider] = useState<Provider>(() => {
+    return (localStorage.getItem("provider") as Provider) || "openai";
+  });
+  const [model, setModel] = useState(() => {
+    return localStorage.getItem("model") || "gpt-image-1";
+  });
+  const [falCustom, setFalCustom] = useState<boolean>(() => {
+    return localStorage.getItem("fal_custom") === "true";
+  });
+  const [falInput, setFalInput] = useState<string>(() => {
+    return localStorage.getItem("fal_custom_model") || "";
+  });
   const pipeline = useIconPipeline(tauriTransport);
   const wf = useAppWorkflow(pipeline, model, provider);
 
@@ -45,8 +55,6 @@ export function AppContent() {
     icnsPath: string;
   } | null>(null);
   const [openAIApiKeyStartupOpen, setOpenAIApiKeyStartupOpen] = useState(false);
-  const [falCustom, setFalCustom] = useState(false);
-  const [falInput, setFalInput] = useState("");
   const [openAIApiKeyManageReason, setOpenAIApiKeyManageReason] =
     useState<OpenAIApiKeyManageReason | null>(null);
   const prevPipelineStatusRef = useRef(pipeline.status);
