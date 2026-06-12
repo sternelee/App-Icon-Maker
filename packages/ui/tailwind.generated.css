@@ -1658,6 +1658,23 @@
     font-size: 100%;
   }
 }
+@keyframes blueprint-scan {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 184px, 0);
+  }
+}
+.blueprint-scan {
+  animation: blueprint-scan 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .blueprint-scan {
+    animation: none;
+  }
+}
 @property --tw-translate-x {
   syntax: "*";
   inherits: false;

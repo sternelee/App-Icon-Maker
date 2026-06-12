@@ -136,3 +136,24 @@
     font-size: 100%;
   }
 }
+
+/* BlueprintFace scan-line animation (generation loading state).
+   The scan rect lives at SVG y=-40 with height=40 inside a 144x144 viewBox;
+   translating it from 0 to 184px sweeps the band fully across the face
+   (off-screen top -> over the icon -> off-screen bottom) and the loop wraps
+   between two off-screen positions so the snap is invisible. */
+@keyframes blueprint-scan {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(0, 184px, 0); }
+}
+
+.blueprint-scan {
+  animation: blueprint-scan 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blueprint-scan {
+    animation: none;
+  }
+}
