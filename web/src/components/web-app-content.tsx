@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import {
-  MacOSIcon,
+  ResponsiveMacOSIcon,
   PromptInput,
   ErrorModal,
   SaveSuccessModal,
@@ -165,7 +165,7 @@ export function WebAppContent() {
               }}
               disabled={wf.iconState === "generating"}
               placeholder="fal-ai/your-model/edit"
-              className="flex h-8 w-[260px] rounded-md border border-input bg-background px-3 py-1 text-xs font-mono ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-8 min-w-0 flex-1 min-[480px]:flex-none min-[480px]:w-[260px] rounded-md border border-input bg-background px-3 py-1 text-xs font-mono ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
         ) : (
@@ -186,7 +186,7 @@ export function WebAppContent() {
             }}
             disabled={wf.iconState === "generating"}
           >
-            <SelectTrigger className="h-8 text-xs min-w-[260px]">
+            <SelectTrigger className="h-8 text-xs min-w-0 max-w-full flex-1 min-[480px]:flex-none min-[480px]:min-w-[260px]">
               <SelectValue placeholder="Select model">
                 {(() => {
                   const items = MODEL_LIST[provider] || [];
@@ -260,8 +260,8 @@ export function WebAppContent() {
         </Select>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-10">
-        <MacOSIcon
+      <div className="flex-1 flex flex-col items-center justify-center px-4 min-[480px]:px-10">
+        <ResponsiveMacOSIcon
           state={wf.iconState}
           selected={wf.selectedVariant}
           onSelect={wf.setSelectedVariant}

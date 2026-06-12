@@ -6,6 +6,7 @@ export {
 export { IconFace } from "./components/icon-face";
 export { IconStack } from "./components/icon-stack";
 export { MacOSIcon } from "./components/macos-icon";
+export { ResponsiveMacOSIcon } from "./components/responsive-macos-icon";
 export { PromptInput } from "./components/prompt-input";
 export { SaveSuccessModal } from "./components/save-success-modal";
 export type { PrimaryAction } from "./components/prompt-input";
