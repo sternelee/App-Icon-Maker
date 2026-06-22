@@ -64,6 +64,12 @@ export default defineConfig({
         },
       },
     ],
+    resolve: {
+      alias: {
+        "@app-icon-maker/ui": resolve(__dirname, "../packages/ui/src/index.ts"),
+        "@app-icon-maker/utils": resolve(__dirname, "../packages/utils/src/index.ts"),
+      },
+    },
     ssr: {
       resolve: {
         conditions: ["node", "module"],

@@ -39,7 +39,7 @@ function ProviderSelect({
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {(["openai", "gemini", "openrouter", "fal", "stepfun", "agnes"] as Provider[]).map((p) => (
+        {(["openai", "gemini", "openrouter", "fal", "stepfun", "agnes", "xai", "replicate", "ideogram"] as Provider[]).map((p) => (
           <SelectItem key={p} value={p}>
             {PROVIDER_CONFIG[p].label}
           </SelectItem>
@@ -290,6 +290,7 @@ export function ApiKeyManageModal({
           onChange={setValue}
           onKeyDown={onKeyDown}
           description={description}
+          showHelpButton={false}
           onOpenExternalUrl={onOpenExternalUrl}
         />
 

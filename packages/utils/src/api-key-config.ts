@@ -1,5 +1,13 @@
-export type Provider = "openai" | "gemini" | "openrouter" | "fal" | "stepfun" | "agnes";
-
+export type Provider =
+  | "openai"
+  | "gemini"
+  | "openrouter"
+  | "fal"
+  | "stepfun"
+  | "agnes"
+  | "xai"
+  | "replicate"
+  | "ideogram";
 
 export const PROVIDER_CONFIG: Record<
   Provider,
@@ -45,5 +53,23 @@ export const PROVIDER_CONFIG: Record<
     keyLabel: "Agnes API key",
     placeholder: "…",
     helpUrl: "https://agnes-ai.com/doc/agnes-image-21-flash",
+  },
+  xai: {
+    label: "xAI (Grok)",
+    keyLabel: "xAI API key",
+    placeholder: "xai-…",
+    helpUrl: "https://console.x.ai",
+  },
+  replicate: {
+    label: "Replicate",
+    keyLabel: "Replicate API token",
+    placeholder: "r8_…",
+    helpUrl: "https://replicate.com/account/api-tokens",
+  },
+  ideogram: {
+    label: "Ideogram",
+    keyLabel: "Ideogram API key",
+    placeholder: "…",
+    helpUrl: "https://ideogram.ai/manage-api",
   },
 };
