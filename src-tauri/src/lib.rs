@@ -15,6 +15,9 @@ struct AppState {
     fal_api_key: Mutex<String>,
     stepfun_api_key: Mutex<String>,
     agnes_api_key: Mutex<String>,
+    xai_api_key: Mutex<String>,
+    replicate_api_key: Mutex<String>,
+    ideogram_api_key: Mutex<String>,
 
     has_unsaved_icon: Mutex<bool>,
 }
@@ -26,6 +29,9 @@ const OPENROUTER_API_KEY_KEY: &str = "openrouter.api_key";
 const FAL_API_KEY_KEY: &str = "fal.api_key";
 const STEPFUN_API_KEY_KEY: &str = "stepfun.api_key";
 const AGNES_API_KEY_KEY: &str = "agnes.api_key";
+const XAI_API_KEY_KEY: &str = "xai.api_key";
+const REPLICATE_API_KEY_KEY: &str = "replicate.api_key";
+const IDEOGRAM_API_KEY_KEY: &str = "ideogram.api_key";
 
 
 // ---------------------------------------------------------------------------
@@ -1491,6 +1497,462 @@ fn get_stored_stepfun_api_key(state: State<AppState>) -> Result<StoredApiKey, St
     })
 }
 
+// ---------------------------------------------------------------------------
+// xAI (Grok) API interaction
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+struct XaiImageData {
+    #[serde(default)]
+    b64_json: Option<String>,
+    #[serde(default)]
+    url: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct XaiGenerationResponse {
+    data: Vec<XaiImageData>,
+}
+
+async fn xai_download_to_b64(client: &reqwest::Client, url: &str) -> Result<String, String> {
+    let res = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to download xAI image: {}", e))?;
+    let bytes = res
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read xAI image: {}", e))?;
+    Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
+}
+
+async fn xai_generate_images(
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+) -> Result<Vec<String>, String> {
+    let client = reqwest::Client::new();
+    let url = "https://api.x.ai/v1/images/generations";
+
+    let mut handles = Vec::new();
+    for _ in 0..3 {
+        #[derive(Serialize)]
+        struct Body {
+            model: String,
+            prompt: String,
+            n: u32,
+        }
+        let payload = Body {
+            model: model.to_string(),
+            prompt: prompt.to_string(),
+            n: 1,
+        };
+
+        let client = client.clone();
+        let api_key = api_key.to_string();
+        let url = url.to_string();
+
+        handles.push(tokio::spawn(async move {
+            let res = client
+                .post(&url)
+                .header("Content-Type", "application/json")
+                .header("Authorization", format!("Bearer {}", api_key))
+                .json(&payload)
+                .send()
+                .await
+                .map_err(|e| format!("xAI network error: {}", e))?;
+
+            if !res.status().is_success() {
+                let status = res.status();
+                let body = res.text().await.unwrap_or_default();
+                return Err(format!("xAI API error {}: {}", status, body));
+            }
+
+            let json: XaiGenerationResponse = res
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse xAI response: {}", e))?;
+
+            if let Some(item) = json.data.into_iter().next() {
+                if let Some(b64) = item.b64_json {
+                    return Ok(b64);
+                }
+                if let Some(url) = item.url {
+                    return xai_download_to_b64(&client, &url).await;
+                }
+            }
+            Err("xAI returned no image data.".to_string())
+        }));
+    }
+
+    let mut images = Vec::new();
+    for h in handles {
+        match h.await {
+            Ok(Ok(b64)) => images.push(b64),
+            Ok(Err(e)) => return Err(e),
+            Err(e) => return Err(format!("Task failed: {}", e)),
+        }
+    }
+
+    if images.is_empty() {
+        return Err("xAI returned no image data.".to_string());
+    }
+    Ok(images)
+}
+
+// ---------------------------------------------------------------------------
+// Replicate API interaction (hosted models via model: owner/name)
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+struct ReplicatePrediction {
+    #[serde(default)]
+    status: String,
+    #[serde(default)]
+    output: Option<serde_json::Value>,
+    #[serde(default)]
+    error: Option<String>,
+    urls: ReplicateUrls,
+}
+
+#[derive(Deserialize)]
+struct ReplicateUrls {
+    get: String,
+}
+
+async fn replicate_generate_images(
+    api_key: &str,
+    model_id: &str,
+    prompt: &str,
+    reference_b64: Option<&str>,
+) -> Result<Vec<String>, String> {
+    let client = reqwest::Client::new();
+
+    let mut base_input = serde_json::json!({
+        "prompt": prompt,
+        "aspect_ratio": "1:1",
+        "output_format": "jpg",
+    });
+    if let Some(ref_b64) = reference_b64 {
+        base_input["image"] = serde_json::Value::String(format!(
+            "data:image/png;base64,{}",
+            ref_b64
+        ));
+        base_input["prompt_strength"] = serde_json::json!(0.65);
+    }
+
+    let run_once = async {
+        let start = client
+            .post("https://api.replicate.com/v1/predictions")
+            .header("Authorization", format!("Token {}", api_key))
+            .header("Content-Type", "application/json")
+            .json(&serde_json::json!({ "model": model_id, "input": base_input }))
+            .send()
+            .await
+            .map_err(|e| format!("Replicate network error: {}", e))?;
+
+        if !start.status().is_success() {
+            let status = start.status();
+            let body = start.text().await.unwrap_or_default();
+            return Err(format!("Replicate API error {}: {}", status, body));
+        }
+
+        let mut pred: ReplicatePrediction = start
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse Replicate response: {}", e))?;
+
+        for _ in 0..120 {
+            match pred.status.as_str() {
+                "succeeded" => break,
+                "failed" | "canceled" => {
+                    return Err(format!(
+                        "Replicate prediction {}: {}",
+                        pred.status,
+                        pred.error.unwrap_or_default()
+                    ));
+                }
+                _ => {
+                    tokio::time::sleep(Duration::from_millis(1000)).await;
+                    let poll = client
+                        .get(&pred.urls.get)
+                        .header("Authorization", format!("Token {}", api_key))
+                        .send()
+                        .await
+                        .map_err(|e| format!("Replicate poll error: {}", e))?;
+                    if !poll.status().is_success() {
+                        let s = poll.status();
+                        let b = poll.text().await.unwrap_or_default();
+                        return Err(format!("Replicate poll error {}: {}", s, b));
+                    }
+                    pred = poll
+                        .json()
+                        .await
+                        .map_err(|e| format!("Failed to parse Replicate poll: {}", e))?;
+                }
+            }
+        }
+
+        if pred.status != "succeeded" {
+            return Err("Replicate prediction timed out.".to_string());
+        }
+
+        let urls: Vec<String> = match pred.output {
+            Some(serde_json::Value::Array(arr)) => arr
+                .into_iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect(),
+            Some(serde_json::Value::String(s)) => vec![s],
+            _ => Vec::new(),
+        };
+
+        let mut b64s = Vec::new();
+        for url in urls {
+            let r = client
+                .get(&url)
+                .send()
+                .await
+                .map_err(|e| format!("Failed to download Replicate image: {}", e))?;
+            let bytes = r
+                .bytes()
+                .await
+                .map_err(|e| format!("Failed to read Replicate image: {}", e))?;
+            b64s.push(base64::engine::general_purpose::STANDARD.encode(&bytes));
+        }
+        Ok(b64s)
+    };
+
+    let mut handles = Vec::new();
+    for _ in 0..3 {
+        let api_key = api_key.to_string();
+        let prompt = prompt.to_string();
+        let model_id = model_id.to_string();
+        let ref_b64 = reference_b64.map(|s| s.to_string());
+        handles.push(tokio::spawn(async move {
+            let mut input = serde_json::json!({
+                "prompt": prompt,
+                "aspect_ratio": "1:1",
+                "output_format": "jpg",
+            });
+            if let Some(b64) = ref_b64 {
+                input["image"] = serde_json::Value::String(format!(
+                    "data:image/png;base64,{}",
+                    b64
+                ));
+                input["prompt_strength"] = serde_json::json!(0.65);
+            }
+            let client = reqwest::Client::new();
+            let start = client
+                .post("https://api.replicate.com/v1/predictions")
+                .header("Authorization", format!("Token {}", api_key))
+                .header("Content-Type", "application/json")
+                .json(&serde_json::json!({ "model": model_id, "input": input }))
+                .send()
+                .await
+                .map_err(|e| format!("Replicate network error: {}", e))?;
+            if !start.status().is_success() {
+                let s = start.status();
+                let b = start.text().await.unwrap_or_default();
+                return Err(format!("Replicate API error {}: {}", s, b));
+            }
+            let mut pred: ReplicatePrediction = start
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse Replicate response: {}", e))?;
+            for _ in 0..120 {
+                match pred.status.as_str() {
+                    "succeeded" => break,
+                    "failed" | "canceled" => {
+                        return Err(format!(
+                            "Replicate prediction {}: {}",
+                            pred.status,
+                            pred.error.unwrap_or_default()
+                        ));
+                    }
+                    _ => {
+                        tokio::time::sleep(Duration::from_millis(1000)).await;
+                        let poll = client
+                            .get(&pred.urls.get)
+                            .header("Authorization", format!("Token {}", api_key))
+                            .send()
+                            .await
+                            .map_err(|e| format!("Replicate poll error: {}", e))?;
+                        if !poll.status().is_success() {
+                            let s = poll.status();
+                            let b = poll.text().await.unwrap_or_default();
+                            return Err(format!("Replicate poll error {}: {}", s, b));
+                        }
+                        pred = poll
+                            .json()
+                            .await
+                            .map_err(|e| format!("Failed to parse Replicate poll: {}", e))?;
+                    }
+                }
+            }
+            if pred.status != "succeeded" {
+                return Err("Replicate prediction timed out.".to_string());
+            }
+            let urls: Vec<String> = match pred.output {
+                Some(serde_json::Value::Array(arr)) => arr
+                    .into_iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect(),
+                Some(serde_json::Value::String(s)) => vec![s],
+                _ => Vec::new(),
+            };
+            let mut b64s = Vec::new();
+            for url in urls {
+                let r = client
+                    .get(&url)
+                    .send()
+                    .await
+                    .map_err(|e| format!("Failed to download Replicate image: {}", e))?;
+                let bytes = r
+                    .bytes()
+                    .await
+                    .map_err(|e| format!("Failed to read Replicate image: {}", e))?;
+                b64s.push(base64::engine::general_purpose::STANDARD.encode(&bytes));
+            }
+            Ok(b64s)
+        }));
+    }
+
+    let mut images = Vec::new();
+    for h in handles {
+        match h.await {
+            Ok(Ok(mut imgs)) => images.append(&mut imgs),
+            Ok(Err(e)) => return Err(e),
+            Err(e) => return Err(format!("Task failed: {}", e)),
+        }
+    }
+    let _ = run_once;
+
+    if images.is_empty() {
+        return Err("Replicate returned no image data.".to_string());
+    }
+    Ok(images)
+}
+
+// ---------------------------------------------------------------------------
+// Ideogram API interaction
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+struct IdeogramImage {
+    #[serde(default)]
+    url: Option<String>,
+    #[serde(default)]
+    b64_json: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct IdeogramResponse {
+    #[serde(default)]
+    data: Vec<IdeogramImage>,
+}
+
+async fn ideogram_fetch_urls(client: &reqwest::Client, urls: Vec<String>) -> Result<Vec<String>, String> {
+    let mut out = Vec::new();
+    for url in urls {
+        let r = client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to download Ideogram image: {}", e))?;
+        let bytes = r
+            .bytes()
+            .await
+            .map_err(|e| format!("Failed to read Ideogram image: {}", e))?;
+        out.push(base64::engine::general_purpose::STANDARD.encode(&bytes));
+    }
+    Ok(out)
+}
+
+async fn ideogram_generate_images(
+    api_key: &str,
+    model: &str,
+    prompt: &str,
+    reference_b64: Option<&str>,
+    count: u32,
+) -> Result<Vec<String>, String> {
+    let client = reqwest::Client::new();
+
+    let endpoint = if reference_b64.is_some() {
+        "https://api.ideogram.ai/v1/ideogram-v3/edit"
+    } else {
+        "https://api.ideogram.ai/v1/ideogram-v3/generate"
+    };
+
+    let mut handles = Vec::new();
+    for _ in 0..count.min(3) {
+        let mut body = serde_json::json!({
+            "model": model,
+            "prompt": prompt,
+            "aspect_ratio": "1:1",
+            "num_images": 1,
+            "magic_prompt_option": "AUTO",
+        });
+        if let Some(ref_b64) = reference_b64 {
+            body["image"] = serde_json::Value::String(format!(
+                "data:image/png;base64,{}",
+                ref_b64
+            ));
+            body["image_strength"] = serde_json::json!(0.65);
+        }
+
+        let client = client.clone();
+        let api_key = api_key.to_string();
+        let endpoint = endpoint.to_string();
+
+        handles.push(tokio::spawn(async move {
+            let res = client
+                .post(&endpoint)
+                .header("Api-Key", api_key)
+                .header("Content-Type", "application/json")
+                .json(&body)
+                .send()
+                .await
+                .map_err(|e| format!("Ideogram network error: {}", e))?;
+
+            if !res.status().is_success() {
+                let status = res.status();
+                let body = res.text().await.unwrap_or_default();
+                return Err(format!("Ideogram API error {}: {}", status, body));
+            }
+
+            let json: IdeogramResponse = res
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse Ideogram response: {}", e))?;
+
+            let urls: Vec<String> = json
+                .data
+                .into_iter()
+                .filter_map(|d| d.url)
+                .collect();
+            if urls.is_empty() {
+                return Err("Ideogram returned no image data.".to_string());
+            }
+            ideogram_fetch_urls(&client, urls).await
+        }));
+    }
+
+    let mut images = Vec::new();
+    for h in handles {
+        match h.await {
+            Ok(Ok(mut imgs)) => images.append(&mut imgs),
+            Ok(Err(e)) => return Err(e),
+            Err(e) => return Err(format!("Task failed: {}", e)),
+        }
+    }
+
+    if images.is_empty() {
+        return Err("Ideogram returned no image data.".to_string());
+    }
+    Ok(images)
+}
+
 
 // ---------------------------------------------------------------------------
 // Agnes API key management
@@ -1535,6 +1997,126 @@ fn get_stored_agnes_api_key(state: State<AppState>) -> Result<StoredApiKey, Stri
     })
 }
 
+// ---------------------------------------------------------------------------
+// xAI API key management
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+fn set_xai_api_key(
+    api_key: String,
+    app: tauri::AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let trimmed = api_key.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("API key cannot be empty.".to_string());
+    }
+    if let Ok(store) = app.store(STORE_FILE) {
+        store.set(XAI_API_KEY_KEY, serde_json::Value::String(trimmed.clone()));
+        let _ = store.save();
+    }
+    let mut key = state.xai_api_key.lock().map_err(|e| e.to_string())?;
+    *key = trimmed;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_xai_api_key_status(state: State<AppState>) -> Result<ApiKeyStatus, String> {
+    let key = state.xai_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(ApiKeyStatus {
+        key_required: true,
+        has_key: !key.is_empty(),
+    })
+}
+
+#[tauri::command]
+fn get_stored_xai_api_key(state: State<AppState>) -> Result<StoredApiKey, String> {
+    let key = state.xai_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(StoredApiKey {
+        api_key: key.clone(),
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Replicate API key management
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+fn set_replicate_api_key(
+    api_key: String,
+    app: tauri::AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let trimmed = api_key.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("API key cannot be empty.".to_string());
+    }
+    if let Ok(store) = app.store(STORE_FILE) {
+        store.set(REPLICATE_API_KEY_KEY, serde_json::Value::String(trimmed.clone()));
+        let _ = store.save();
+    }
+    let mut key = state.replicate_api_key.lock().map_err(|e| e.to_string())?;
+    *key = trimmed;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_replicate_api_key_status(state: State<AppState>) -> Result<ApiKeyStatus, String> {
+    let key = state.replicate_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(ApiKeyStatus {
+        key_required: true,
+        has_key: !key.is_empty(),
+    })
+}
+
+#[tauri::command]
+fn get_stored_replicate_api_key(state: State<AppState>) -> Result<StoredApiKey, String> {
+    let key = state.replicate_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(StoredApiKey {
+        api_key: key.clone(),
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Ideogram API key management
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+fn set_ideogram_api_key(
+    api_key: String,
+    app: tauri::AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let trimmed = api_key.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("API key cannot be empty.".to_string());
+    }
+    if let Ok(store) = app.store(STORE_FILE) {
+        store.set(IDEOGRAM_API_KEY_KEY, serde_json::Value::String(trimmed.clone()));
+        let _ = store.save();
+    }
+    let mut key = state.ideogram_api_key.lock().map_err(|e| e.to_string())?;
+    *key = trimmed;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_ideogram_api_key_status(state: State<AppState>) -> Result<ApiKeyStatus, String> {
+    let key = state.ideogram_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(ApiKeyStatus {
+        key_required: true,
+        has_key: !key.is_empty(),
+    })
+}
+
+#[tauri::command]
+fn get_stored_ideogram_api_key(state: State<AppState>) -> Result<StoredApiKey, String> {
+    let key = state.ideogram_api_key.lock().map_err(|e| e.to_string())?;
+    Ok(StoredApiKey {
+        api_key: key.clone(),
+    })
+}
+
 #[tauri::command]
 fn set_unsaved_icon_state(unsaved: bool, state: State<AppState>) -> Result<(), String> {
     let mut s = state.has_unsaved_icon.lock().map_err(|e| e.to_string())?;
@@ -1561,6 +2143,9 @@ async fn generate_icon(
             "fal" => "fal-ai/nano-banana",
             "stepfun" => "step-image-edit-2",
             "agnes" => "agnes-image-2.1-flash",
+            "xai" => "grok-imagine-image-quality",
+            "replicate" => "black-forest-labs/flux-schnell",
+            "ideogram" => "V_3",
             _ => "gpt-image-1",
         }
     } else {
@@ -1649,6 +2234,52 @@ async fn generate_icon(
             } else {
                 gemini_edit_images(&api_key, model_name, &full_prompt, &reference_image, 3).await?
             };
+            Ok(GenerateIconResponse { images })
+        }
+        "xai" => {
+            let api_key = {
+                let key = state.xai_api_key.lock().map_err(|e| e.to_string())?;
+                if key.is_empty() {
+                    return Err("No xAI API key. Add one in the settings.".to_string());
+                }
+                key.clone()
+            };
+            if !reference_image.is_empty() {
+                return Err("xAI does not support image edits yet. Generate without a reference image.".to_string());
+            }
+            let images = xai_generate_images(&api_key, model_name, &full_prompt).await?;
+            Ok(GenerateIconResponse { images })
+        }
+        "replicate" => {
+            let api_key = {
+                let key = state.replicate_api_key.lock().map_err(|e| e.to_string())?;
+                if key.is_empty() {
+                    return Err("No Replicate API key. Add one in the settings.".to_string());
+                }
+                key.clone()
+            };
+            let ref_b64 = if reference_image.is_empty() {
+                None
+            } else {
+                Some(reference_image.as_str())
+            };
+            let images = replicate_generate_images(&api_key, model_name, &full_prompt, ref_b64).await?;
+            Ok(GenerateIconResponse { images })
+        }
+        "ideogram" => {
+            let api_key = {
+                let key = state.ideogram_api_key.lock().map_err(|e| e.to_string())?;
+                if key.is_empty() {
+                    return Err("No Ideogram API key. Add one in the settings.".to_string());
+                }
+                key.clone()
+            };
+            let ref_b64 = if reference_image.is_empty() {
+                None
+            } else {
+                Some(reference_image.as_str())
+            };
+            let images = ideogram_generate_images(&api_key, model_name, &full_prompt, ref_b64, 3).await?;
             Ok(GenerateIconResponse { images })
         }
         _ => {
@@ -1849,6 +2480,9 @@ pub fn run() {
             fal_api_key: Mutex::new(String::new()),
             stepfun_api_key: Mutex::new(String::new()),
             agnes_api_key: Mutex::new(String::new()),
+            xai_api_key: Mutex::new(String::new()),
+            replicate_api_key: Mutex::new(String::new()),
+            ideogram_api_key: Mutex::new(String::new()),
 
             has_unsaved_icon: Mutex::new(false),
         })
@@ -1908,6 +2542,33 @@ pub fn run() {
                         };
                     }
                 }
+                // Load xAI API key
+                if let Some(val) = store.get(XAI_API_KEY_KEY) {
+                    if let Some(key_str) = val.as_str() {
+                        let state = app.state::<AppState>();
+                        if let Ok(mut key) = state.xai_api_key.lock() {
+                            *key = key_str.to_string();
+                        };
+                    }
+                }
+                // Load Replicate API key
+                if let Some(val) = store.get(REPLICATE_API_KEY_KEY) {
+                    if let Some(key_str) = val.as_str() {
+                        let state = app.state::<AppState>();
+                        if let Ok(mut key) = state.replicate_api_key.lock() {
+                            *key = key_str.to_string();
+                        };
+                    }
+                }
+                // Load Ideogram API key
+                if let Some(val) = store.get(IDEOGRAM_API_KEY_KEY) {
+                    if let Some(key_str) = val.as_str() {
+                        let state = app.state::<AppState>();
+                        if let Ok(mut key) = state.ideogram_api_key.lock() {
+                            *key = key_str.to_string();
+                        };
+                    }
+                }
 
             }
             Ok(())
@@ -1944,6 +2605,15 @@ pub fn run() {
             set_agnes_api_key,
             get_agnes_api_key_status,
             get_stored_agnes_api_key,
+            set_xai_api_key,
+            get_xai_api_key_status,
+            get_stored_xai_api_key,
+            set_replicate_api_key,
+            get_replicate_api_key_status,
+            get_stored_replicate_api_key,
+            set_ideogram_api_key,
+            get_ideogram_api_key_status,
+            get_stored_ideogram_api_key,
             set_unsaved_icon_state,
             read_file_as_base64,
         ])

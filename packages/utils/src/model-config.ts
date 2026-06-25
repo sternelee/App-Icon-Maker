@@ -54,6 +54,44 @@ export const MODEL_LIST: Record<Provider, { value: string; label: string }[]> =
       { value: "agnes-image-2.1-flash", label: "Agnes Image 2.1 Flash" },
       { value: "agnes-image-2.0-flash", label: "Agnes Image 2.0 Flash" },
     ],
+    xai: [
+      {
+        value: "grok-imagine-image-quality",
+        label: "Grok Imagine (quality)",
+      },
+    ],
+    replicate: [
+      {
+        value: "black-forest-labs/flux-schnell",
+        label: "FLUX.1 Schnell",
+      },
+      {
+        value: "black-forest-labs/flux-dev",
+        label: "FLUX.1 Dev",
+      },
+      {
+        value: "black-forest-labs/flux-1.1-pro",
+        label: "FLUX.1.1 Pro",
+      },
+      {
+        value: "stability-ai/stable-diffusion-3.5-large",
+        label: "SD 3.5 Large",
+      },
+      {
+        value: "bytedance/seedream-3",
+        label: "Seedream 3",
+      },
+      {
+        value: "google/imagen-4-fast",
+        label: "Imagen 4 Fast",
+      },
+    ],
+    ideogram: [
+      { value: "V_2", label: "Ideogram v2" },
+      { value: "V_2_TURBO", label: "Ideogram v2 Turbo" },
+      { value: "V_3", label: "Ideogram v3" },
+      { value: "V_3_DEFAULT", label: "Ideogram v3 Default" },
+    ],
   };
 
 export function getDefaultModel(provider: Provider): string {

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "astro dev",
-    "build": "node scripts/build-tailwind.mjs && astro build",
+    "build": "pnpm --filter @app-icon-maker/utils build && pnpm --filter @app-icon-maker/ui build && node scripts/build-tailwind.mjs && astro build",
     "preview": "astro preview",
     "astro": "astro",
     "deploy": "astro build && ./node_modules/.bin/wrangler deploy",
