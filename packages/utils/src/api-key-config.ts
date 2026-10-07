@@ -52,7 +52,7 @@ export const PROVIDER_CONFIG: Record<
     label: "Agnes",
     keyLabel: "Agnes API key",
     placeholder: "…",
-    helpUrl: "https://agnes-ai.com/doc/agnes-image-21-flash",
+    helpUrl: "https://agnes-ai.com/doc/agnes-image-25-flash",
   },
   xai: {
     label: "xAI (Grok)",

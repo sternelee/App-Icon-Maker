@@ -270,7 +270,9 @@ export const POST: APIRoute = async ({ request }) => {
 
         try {
           const images = await Promise.all(requests);
-          return new Response(JSON.stringify({ images: images.filter(Boolean) }));
+          return new Response(
+            JSON.stringify({ images: images.filter(Boolean) }),
+          );
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           return new Response(JSON.stringify({ images: [], error: msg }));
@@ -278,11 +280,11 @@ export const POST: APIRoute = async ({ request }) => {
       }
 
       case "agnes": {
-        const url = "https://apihub.agnes-ai.com/v1/images/generations";
+        const url = "https://api.agnes-ai.cn/v1/images/generations";
 
         const requests = Array.from({ length: 3 }).map(async () => {
           const body: Record<string, any> = {
-            model: model || "agnes-image-2.1-flash",
+            model: model || "agnes-image-2.5-flash",
             prompt: `${systemPrefix} ${prompt}`,
             size: "1024x1024",
           };
@@ -339,7 +341,8 @@ export const POST: APIRoute = async ({ request }) => {
           return new Response(
             JSON.stringify({
               images: [],
-              error: "xAI does not support image edits yet. Generate without a reference image.",
+              error:
+                "xAI does not support image edits yet. Generate without a reference image.",
             }),
             { status: 400 },
           );
@@ -397,14 +400,17 @@ export const POST: APIRoute = async ({ request }) => {
 
         // Replicate accepts `model: owner/name` for hosted models; output is array of URLs.
         const run = async () => {
-          const startRes = await fetch("https://api.replicate.com/v1/predictions", {
-            method: "POST",
-            headers: {
-              Authorization: `Token ${apiKey}`,
-              "Content-Type": "application/json",
+          const startRes = await fetch(
+            "https://api.replicate.com/v1/predictions",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Token ${apiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ input: baseInput, model: modelId }),
             },
-            body: JSON.stringify({ input: baseInput, model: modelId }),
-          });
+          );
           if (!startRes.ok) {
             const err = await startRes.text();
             throw new Error(err);
@@ -431,7 +437,9 @@ export const POST: APIRoute = async ({ request }) => {
         };
 
         try {
-          const preds = await Promise.all(Array.from({ length: 3 }, () => run()));
+          const preds = await Promise.all(
+            Array.from({ length: 3 }, () => run()),
+          );
           const urls = preds.flatMap((p: any) =>
             Array.isArray(p.output) ? p.output : p.output ? [p.output] : [],
           );
@@ -477,7 +485,9 @@ export const POST: APIRoute = async ({ request }) => {
             return new Response(JSON.stringify({ images: [], error: err }));
           }
           const data = await res.json();
-          const urls: string[] = (data.data || []).map((d: any) => d.url).filter(Boolean);
+          const urls: string[] = (data.data || [])
+            .map((d: any) => d.url)
+            .filter(Boolean);
           const b64s = await Promise.all(
             urls.map(async (u) => {
               const r = await fetch(u);
@@ -487,20 +497,25 @@ export const POST: APIRoute = async ({ request }) => {
           );
           return new Response(JSON.stringify({ images: b64s }));
         }
-        const res = await fetch("https://api.ideogram.ai/v1/ideogram-v3/generate", {
-          method: "POST",
-          headers: {
-            "Api-Key": apiKey,
-            "Content-Type": "application/json",
+        const res = await fetch(
+          "https://api.ideogram.ai/v1/ideogram-v3/generate",
+          {
+            method: "POST",
+            headers: {
+              "Api-Key": apiKey,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(reqBody),
           },
-          body: JSON.stringify(reqBody),
-        });
+        );
         if (!res.ok) {
           const err = await res.text();
           return new Response(JSON.stringify({ images: [], error: err }));
         }
         const data = await res.json();
-        const urls: string[] = (data.data || []).map((d: any) => d.url).filter(Boolean);
+        const urls: string[] = (data.data || [])
+          .map((d: any) => d.url)
+          .filter(Boolean);
         const b64s = await Promise.all(
           urls.map(async (u) => {
             const r = await fetch(u);
