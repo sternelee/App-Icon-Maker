@@ -176,7 +176,7 @@ export function PromptInput({
         rows={2}
         className={cn(
           "w-full bg-transparent resize-none border-0 outline-none ring-0",
-          "text-sm text-foreground placeholder:text-muted-foreground",
+          "text-base text-foreground placeholder:text-muted-foreground",
           "leading-relaxed overflow-y-auto m-1.5",
           inputDisabled && "opacity-60",
         )}
