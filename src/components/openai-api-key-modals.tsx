@@ -17,6 +17,12 @@ const CMD_MAP: Record<Provider, { get: string; set: string }> = {
   },
   stepfun: { get: "get_stored_stepfun_api_key", set: "set_stepfun_api_key" },
   agnes: { get: "get_stored_agnes_api_key", set: "set_agnes_api_key" },
+  xai: { get: "get_stored_xai_api_key", set: "set_xai_api_key" },
+  replicate: {
+    get: "get_stored_replicate_api_key",
+    set: "set_replicate_api_key",
+  },
+  ideogram: { get: "get_stored_ideogram_api_key", set: "set_ideogram_api_key" },
 };
 
 async function persistKey(
