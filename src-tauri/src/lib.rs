@@ -33,7 +33,6 @@ const XAI_API_KEY_KEY: &str = "xai.api_key";
 const REPLICATE_API_KEY_KEY: &str = "replicate.api_key";
 const IDEOGRAM_API_KEY_KEY: &str = "ideogram.api_key";
 
-
 // ---------------------------------------------------------------------------
 // Icon resize constants
 // ---------------------------------------------------------------------------
@@ -625,10 +624,6 @@ async fn openrouter_edit_images(
     Ok(images)
 }
 
-
-
-
-
 // ---------------------------------------------------------------------------
 // Icon build helpers (.iconset → .icns via sips + iconutil)
 // ---------------------------------------------------------------------------
@@ -697,7 +692,6 @@ async fn build_icns(
 // ---------------------------------------------------------------------------
 // Tauri commands
 // ---------------------------------------------------------------------------
-
 
 // ---------------------------------------------------------------------------
 // fal.ai API interaction (queue-based)
@@ -783,9 +777,9 @@ async fn fal_generate(
     let request_id = submit_json.request_id;
     // fal.ai status/result URLs: prefer status_url from response, fallback to app-name-based URL
     let app_name = model.strip_suffix("/edit").unwrap_or(model);
-    let status_url = submit_json.status_url.unwrap_or_else(|| {
-        format!("{}/{}/requests/{}/status", base, app_name, request_id)
-    });
+    let status_url = submit_json
+        .status_url
+        .unwrap_or_else(|| format!("{}/{}/requests/{}/status", base, app_name, request_id));
     let result_url = format!("{}/{}/requests/{}", base, app_name, request_id);
 
     eprintln!("[fal.ai] App: {}", app_name);
@@ -926,13 +920,13 @@ struct StepfunGenerationRequest {
 
 #[derive(Deserialize)]
 struct StepfunImageData {
-	b64_json: String,
-	#[serde(default)]
-	#[allow(dead_code)]
-	finish_reason: Option<String>,
-	#[serde(default)]
-	#[allow(dead_code)]
-	seed: Option<u32>,
+    b64_json: String,
+    #[serde(default)]
+    #[allow(dead_code)]
+    finish_reason: Option<String>,
+    #[serde(default)]
+    #[allow(dead_code)]
+    seed: Option<u32>,
 }
 
 #[derive(Deserialize)]
@@ -957,15 +951,15 @@ async fn stepfun_generate_images(
             size: "1024x1024".to_string(),
             n: 1,
             response_format: "b64_json".to_string(),
-			seed: if seed == 0 {
-				(std::time::SystemTime::now()
-					.duration_since(std::time::UNIX_EPOCH)
-					.unwrap_or_default()
-					.as_secs() as u32)
-					.wrapping_add(i)
-			} else {
-				(seed as u32).wrapping_add(i)
-			},
+            seed: if seed == 0 {
+                (std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs() as u32)
+                    .wrapping_add(i)
+            } else {
+                (seed as u32).wrapping_add(i)
+            },
         };
 
         let client = client.clone();
@@ -1132,7 +1126,7 @@ async fn agnes_generate_images(
     count: u32,
 ) -> Result<Vec<String>, String> {
     let client = reqwest::Client::new();
-    let url = "https://apihub.agnes-ai.com/v1/images/generations";
+    let url = "https://api.agnes-ai.cn/v1/images/generations";
 
     let mut handles = Vec::new();
     for _ in 0..count.min(3) {
@@ -1215,7 +1209,7 @@ async fn agnes_edit_images(
     count: u32,
 ) -> Result<Vec<String>, String> {
     let client = reqwest::Client::new();
-    let url = "https://apihub.agnes-ai.com/v1/images/generations";
+    let url = "https://api.agnes-ai.cn/v1/images/generations";
 
     let mut handles = Vec::new();
     for _ in 0..count.min(3) {
@@ -1370,7 +1364,6 @@ fn get_stored_gemini_api_key(state: State<AppState>) -> Result<StoredApiKey, Str
     })
 }
 
-
 // ---------------------------------------------------------------------------
 // fal.ai API key management
 // ---------------------------------------------------------------------------
@@ -1410,7 +1403,6 @@ fn get_stored_fal_api_key(state: State<AppState>) -> Result<StoredApiKey, String
         api_key: key.clone(),
     })
 }
-
 
 // ---------------------------------------------------------------------------
 // OpenRouter API key management
@@ -1452,7 +1444,6 @@ fn get_stored_openrouter_api_key(state: State<AppState>) -> Result<StoredApiKey,
         api_key: key.clone(),
     })
 }
-
 
 // ---------------------------------------------------------------------------
 // Stepfun API key management
@@ -1635,10 +1626,8 @@ async fn replicate_generate_images(
         "output_format": "jpg",
     });
     if let Some(ref_b64) = reference_b64 {
-        base_input["image"] = serde_json::Value::String(format!(
-            "data:image/png;base64,{}",
-            ref_b64
-        ));
+        base_input["image"] =
+            serde_json::Value::String(format!("data:image/png;base64,{}", ref_b64));
         base_input["prompt_strength"] = serde_json::json!(0.65);
     }
 
@@ -1736,10 +1725,8 @@ async fn replicate_generate_images(
                 "output_format": "jpg",
             });
             if let Some(b64) = ref_b64 {
-                input["image"] = serde_json::Value::String(format!(
-                    "data:image/png;base64,{}",
-                    b64
-                ));
+                input["image"] =
+                    serde_json::Value::String(format!("data:image/png;base64,{}", b64));
                 input["prompt_strength"] = serde_json::json!(0.65);
             }
             let client = reqwest::Client::new();
@@ -1852,7 +1839,10 @@ struct IdeogramResponse {
     data: Vec<IdeogramImage>,
 }
 
-async fn ideogram_fetch_urls(client: &reqwest::Client, urls: Vec<String>) -> Result<Vec<String>, String> {
+async fn ideogram_fetch_urls(
+    client: &reqwest::Client,
+    urls: Vec<String>,
+) -> Result<Vec<String>, String> {
     let mut out = Vec::new();
     for url in urls {
         let r = client
@@ -1894,10 +1884,7 @@ async fn ideogram_generate_images(
             "magic_prompt_option": "AUTO",
         });
         if let Some(ref_b64) = reference_b64 {
-            body["image"] = serde_json::Value::String(format!(
-                "data:image/png;base64,{}",
-                ref_b64
-            ));
+            body["image"] = serde_json::Value::String(format!("data:image/png;base64,{}", ref_b64));
             body["image_strength"] = serde_json::json!(0.65);
         }
 
@@ -1926,11 +1913,7 @@ async fn ideogram_generate_images(
                 .await
                 .map_err(|e| format!("Failed to parse Ideogram response: {}", e))?;
 
-            let urls: Vec<String> = json
-                .data
-                .into_iter()
-                .filter_map(|d| d.url)
-                .collect();
+            let urls: Vec<String> = json.data.into_iter().filter_map(|d| d.url).collect();
             if urls.is_empty() {
                 return Err("Ideogram returned no image data.".to_string());
             }
@@ -1952,7 +1935,6 @@ async fn ideogram_generate_images(
     }
     Ok(images)
 }
-
 
 // ---------------------------------------------------------------------------
 // Agnes API key management
@@ -2052,7 +2034,10 @@ fn set_replicate_api_key(
         return Err("API key cannot be empty.".to_string());
     }
     if let Ok(store) = app.store(STORE_FILE) {
-        store.set(REPLICATE_API_KEY_KEY, serde_json::Value::String(trimmed.clone()));
+        store.set(
+            REPLICATE_API_KEY_KEY,
+            serde_json::Value::String(trimmed.clone()),
+        );
         let _ = store.save();
     }
     let mut key = state.replicate_api_key.lock().map_err(|e| e.to_string())?;
@@ -2092,7 +2077,10 @@ fn set_ideogram_api_key(
         return Err("API key cannot be empty.".to_string());
     }
     if let Ok(store) = app.store(STORE_FILE) {
-        store.set(IDEOGRAM_API_KEY_KEY, serde_json::Value::String(trimmed.clone()));
+        store.set(
+            IDEOGRAM_API_KEY_KEY,
+            serde_json::Value::String(trimmed.clone()),
+        );
         let _ = store.save();
     }
     let mut key = state.ideogram_api_key.lock().map_err(|e| e.to_string())?;
@@ -2168,7 +2156,8 @@ async fn generate_icon(
                 Some(reference_image.as_str())
             };
 
-            let images = fal_generate_images(&api_key, model_name, &full_prompt, reference_b64, 3).await?;
+            let images =
+                fal_generate_images(&api_key, model_name, &full_prompt, reference_b64, 3).await?;
             Ok(GenerateIconResponse { images })
         }
         "stepfun" => {
@@ -2216,7 +2205,8 @@ async fn generate_icon(
             let images = if reference_image.is_empty() {
                 openrouter_generate_images(&api_key, model_name, &full_prompt, 3).await?
             } else {
-                openrouter_edit_images(&api_key, model_name, &full_prompt, &reference_image, 3).await?
+                openrouter_edit_images(&api_key, model_name, &full_prompt, &reference_image, 3)
+                    .await?
             };
             Ok(GenerateIconResponse { images })
         }
@@ -2245,7 +2235,10 @@ async fn generate_icon(
                 key.clone()
             };
             if !reference_image.is_empty() {
-                return Err("xAI does not support image edits yet. Generate without a reference image.".to_string());
+                return Err(
+                    "xAI does not support image edits yet. Generate without a reference image."
+                        .to_string(),
+                );
             }
             let images = xai_generate_images(&api_key, model_name, &full_prompt).await?;
             Ok(GenerateIconResponse { images })
@@ -2263,7 +2256,8 @@ async fn generate_icon(
             } else {
                 Some(reference_image.as_str())
             };
-            let images = replicate_generate_images(&api_key, model_name, &full_prompt, ref_b64).await?;
+            let images =
+                replicate_generate_images(&api_key, model_name, &full_prompt, ref_b64).await?;
             Ok(GenerateIconResponse { images })
         }
         "ideogram" => {
@@ -2279,7 +2273,8 @@ async fn generate_icon(
             } else {
                 Some(reference_image.as_str())
             };
-            let images = ideogram_generate_images(&api_key, model_name, &full_prompt, ref_b64, 3).await?;
+            let images =
+                ideogram_generate_images(&api_key, model_name, &full_prompt, ref_b64, 3).await?;
             Ok(GenerateIconResponse { images })
         }
         _ => {
@@ -2314,11 +2309,23 @@ async fn save_icon(
         "png" => ("PNG image", vec!["png"], "app.png"),
         "jpeg" => ("JPEG image", vec!["jpg", "jpeg"], "app.jpg"),
         _ => {
-            let filter_name = if cfg!(target_os = "macos") { "macOS icon" } else { "PNG image" };
-            let extensions: Vec<&str> = if cfg!(target_os = "macos") { vec!["icns"] } else { vec!["png"] };
-            let default_name = if cfg!(target_os = "macos") { "app.icns" } else { "app.png" };
+            let filter_name = if cfg!(target_os = "macos") {
+                "macOS icon"
+            } else {
+                "PNG image"
+            };
+            let extensions: Vec<&str> = if cfg!(target_os = "macos") {
+                vec!["icns"]
+            } else {
+                vec!["png"]
+            };
+            let default_name = if cfg!(target_os = "macos") {
+                "app.icns"
+            } else {
+                "app.png"
+            };
             (filter_name, extensions, default_name)
-        },
+        }
     };
 
     #[allow(unused_mut)]
@@ -2356,9 +2363,11 @@ async fn save_icon(
                     #[cfg(target_os = "macos")]
                     {
                         // Convert PNG to JPEG using sips
-                        let tmp = std::env::temp_dir().join(format!("iconmaker-save-{}", std::process::id()));
+                        let tmp = std::env::temp_dir()
+                            .join(format!("iconmaker-save-{}", std::process::id()));
                         let tmp_png = tmp.join("tmp.png");
-                        std::fs::create_dir_all(&tmp).map_err(|e| format!("Failed to create temp dir: {}", e))?;
+                        std::fs::create_dir_all(&tmp)
+                            .map_err(|e| format!("Failed to create temp dir: {}", e))?;
                         std::fs::write(&tmp_png, &image_data)
                             .map_err(|e| format!("Failed to write temp PNG: {}", e))?;
                         run_command(
@@ -2418,14 +2427,18 @@ async fn save_icon(
 #[tauri::command]
 async fn show_path_in_finder(app_handle: tauri::AppHandle, path: String) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
-    app_handle.opener().reveal_item_in_dir(&path)
+    app_handle
+        .opener()
+        .reveal_item_in_dir(&path)
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 async fn open_external_url(app_handle: tauri::AppHandle, url: String) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
-    app_handle.opener().open_url(&url, None::<&str>)
+    app_handle
+        .opener()
+        .open_url(&url, None::<&str>)
         .map_err(|e| e.to_string())
 }
 
@@ -2569,7 +2582,6 @@ pub fn run() {
                         };
                     }
                 }
-
             }
             Ok(())
         })
