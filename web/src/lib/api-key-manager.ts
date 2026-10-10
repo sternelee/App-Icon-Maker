@@ -1,10 +1,18 @@
-const STORAGE_KEYS: Record<string, string> = {
-  openai: "app-icon-maker:api-key:openai",
-  gemini: "app-icon-maker:api-key:gemini",
-  openrouter: "app-icon-maker:api-key:openrouter",
-  fal: "app-icon-maker:api-key:fal",
-  stepfun: "app-icon-maker:api-key:stepfun",
-};
+export const WEB_PROVIDERS = [
+  "openai",
+  "gemini",
+  "openrouter",
+  "fal",
+  "stepfun",
+  "agnes",
+  "xai",
+  "replicate",
+  "ideogram",
+] as const;
+
+const STORAGE_KEYS: Record<string, string> = Object.fromEntries(
+  WEB_PROVIDERS.map((p) => [p, `app-icon-maker:api-key:${p}`]),
+);
 
 export function getApiKey(provider: string): string | null {
   return localStorage.getItem(STORAGE_KEYS[provider] || "");

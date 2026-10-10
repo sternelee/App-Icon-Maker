@@ -3,7 +3,7 @@ import {
   ApiKeyManageModal,
   type Provider,
 } from "@app-icon-maker/ui";
-import { setApiKey, getApiKey, hasApiKey } from "../lib/api-key-manager";
+import { setApiKey, getApiKey, hasApiKey, WEB_PROVIDERS } from "../lib/api-key-manager";
 
 export function WebApiKeyModal({
   defaultProvider,
@@ -12,9 +12,7 @@ export function WebApiKeyModal({
   defaultProvider: Provider;
   onClose: (savedProvider?: Provider) => void;
 }) {
-  const hasAny = ["openai", "gemini", "openrouter", "fal", "stepfun", "agnes" as Provider].some(
-    (p) => hasApiKey(p),
-  );
+  const hasAny = WEB_PROVIDERS.some((p) => hasApiKey(p));
 
   async function persistKey(
     provider: Provider,

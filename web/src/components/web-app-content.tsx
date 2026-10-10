@@ -23,21 +23,10 @@ import {
   useAppWorkflow,
 } from "@app-icon-maker/utils";
 import { createWebTransport } from "../lib/web-transport";
-import { hasApiKey } from "../lib/api-key-manager";
+import { getApiKey, hasApiKey, WEB_PROVIDERS } from "../lib/api-key-manager";
 import { WebApiKeyModal } from "./web-api-key-modals";
 
-const transport = createWebTransport((provider) => {
-  // Inline simple getApiKey to avoid circular import issues with api-key-manager
-  const keys: Record<string, string> = {
-    openai: "app-icon-maker:api-key:openai",
-    gemini: "app-icon-maker:api-key:gemini",
-    openrouter: "app-icon-maker:api-key:openrouter",
-    fal: "app-icon-maker:api-key:fal",
-    stepfun: "app-icon-maker:api-key:stepfun",
-    agnes: "app-icon-maker:api-key:agnes",
-  };
-  return localStorage.getItem(keys[provider] || "") || null;
-});
+const transport = createWebTransport((provider) => getApiKey(provider));
 
 export function WebAppContent() {
   const [provider, setProvider] = useState<Provider>(() => {
@@ -55,8 +44,7 @@ export function WebAppContent() {
   const [falInput, setFalInput] = useState("");
 
   useEffect(() => {
-    const providers: Provider[] = ["openai", "gemini", "openrouter", "fal", "stepfun", "agnes"];
-    if (!providers.some((p) => hasApiKey(p))) {
+    if (!WEB_PROVIDERS.some((p) => hasApiKey(p))) {
       setShowApiKeyModal(true);
     }
   }, []);
