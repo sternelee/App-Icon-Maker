@@ -32,6 +32,9 @@ export interface AppWorkflow {
   inputPlaceholder: string;
   pipeline: IconPipeline;
   resumeAfterCancelRef: React.MutableRefObject<ResumeAfterCancel>;
+  /** Set to true before a session restore touches pipeline status, so the
+   *  status-sync effect doesn't clobber the restored iconState. */
+  skipStatusSyncRef: React.MutableRefObject<boolean>;
 }
 
 export function useAppWorkflow(
@@ -47,6 +50,7 @@ export function useAppWorkflow(
   const [rawBaseIconSrc, setRawBaseIconSrc] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const resumeAfterCancelRef = useRef<ResumeAfterCancel>("idle");
+  const skipStatusSyncRef = useRef(false);
 
   const modelRef = useRef(model);
   const providerRef = useRef(provider);
@@ -55,6 +59,10 @@ export function useAppWorkflow(
 
   // Sync iconState with pipeline status changes.
   useEffect(() => {
+    if (skipStatusSyncRef.current) {
+      skipStatusSyncRef.current = false;
+      return;
+    }
     if (pipeline.status === "done") {
       const hasAny = pipeline.variants.some((v) => v !== null);
       setIconState(hasAny ? "generated" : "idle");
@@ -168,5 +176,6 @@ export function useAppWorkflow(
     inputPlaceholder,
     pipeline,
     resumeAfterCancelRef,
+    skipStatusSyncRef,
   };
 }

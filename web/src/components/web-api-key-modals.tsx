@@ -3,7 +3,13 @@ import {
   ApiKeyManageModal,
   type Provider,
 } from "@app-icon-maker/ui";
-import { setApiKey, getApiKey, hasApiKey, WEB_PROVIDERS } from "../lib/api-key-manager";
+import {
+  setApiKey,
+  getApiKey,
+  hasApiKey,
+  clearApiKey,
+  WEB_PROVIDERS,
+} from "../lib/api-key-manager";
 
 export function WebApiKeyModal({
   defaultProvider,
@@ -27,6 +33,11 @@ export function WebApiKeyModal({
 
   async function loadKey(provider: Provider): Promise<string> {
     return getApiKey(provider) ?? "";
+  }
+
+  async function clearKey(provider: Provider): Promise<string | null> {
+    clearApiKey(provider);
+    return null;
   }
 
   function openExternalUrl(url: string) {
@@ -57,6 +68,7 @@ export function WebApiKeyModal({
       reason="settings"
       onPersistKey={persistKey}
       onLoadKey={loadKey}
+      onClearKey={clearKey}
       onOpenExternalUrl={openExternalUrl}
       onClose={(saved, provider) => {
         if (saved && provider) onClose(provider);

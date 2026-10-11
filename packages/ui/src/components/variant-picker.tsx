@@ -1,3 +1,4 @@
+import { useRef, type KeyboardEvent } from "react";
 import { IconFace } from "./icon-face";
 import {
   ICON_CLIP_FILTER_BASE,
@@ -20,18 +21,41 @@ export function VariantPicker({
   const vbPad = (selectionRingPx / 2) * (100 / iconPx);
   const viewBoxVb = `${-vbPad} ${-vbPad} ${100 + 2 * vbPad} ${100 + 2 * vbPad}`;
   const ringStrokeVb = String((selectionRingPx * 100) / iconPx);
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Arrow keys move selection like a radio group, following focus.
+  const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
+    let next: number | null = null;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      next = (i + 1) % 3;
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      next = (i + 2) % 3;
+    }
+    if (next !== null) {
+      e.preventDefault();
+      onSelect(next);
+      refs.current[next]?.focus();
+    }
+  };
 
   return (
-    <div className="flex gap-8">
+    <div className="flex gap-8" role="radiogroup" aria-label="Generated variants">
       {[0, 1, 2].map((i) => {
         const isSelected = selected === i;
         const src = variants[i];
         return (
           <button
             key={i}
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
             onClick={() => onSelect(i)}
-            className="group relative flex items-center justify-center overflow-visible rounded-none focus:outline-none"
+            onKeyDown={(e) => handleKeyDown(e, i)}
+            className="group relative flex items-center justify-center overflow-visible rounded-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
             type="button"
+            role="radio"
+            aria-checked={isSelected}
+            aria-label={`Variant ${i + 1}${src ? "" : " (empty)"}`}
             style={{
               width: cellPx,
               height: cellPx,
@@ -50,7 +74,7 @@ export function VariantPicker({
             </div>
             {!isSelected && (
               <svg
-                className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
                 viewBox={viewBoxVb}
                 preserveAspectRatio="none"
                 overflow="visible"

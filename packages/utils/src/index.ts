@@ -26,3 +26,11 @@ export type {
   PrimaryAction,
   ResumeAfterCancel,
 } from "./use-app-workflow";
+export {
+  saveSession,
+  loadSession,
+  clearSession,
+  restoreSession,
+  useSessionAutosave,
+} from "./session-store";
+export type { SessionSnapshot } from "./session-store";

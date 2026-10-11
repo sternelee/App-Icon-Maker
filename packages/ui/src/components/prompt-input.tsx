@@ -18,6 +18,8 @@ import { cn } from "@app-icon-maker/utils";
 
 export type PrimaryAction = "submit" | "stop" | "refresh" | "select";
 
+const MAX_REFERENCE_BYTES = 10 * 1024 * 1024;
+
 export function PromptInput({
   value,
   onChange,
@@ -50,9 +52,40 @@ export function PromptInput({
   attachmentsDisabled?: boolean;
 }) {
   const [dragOver, setDragOver] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dropRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const showNotice = (msg: string) => {
+    setNotice(msg);
+    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = setTimeout(() => setNotice(null), 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    };
+  }, []);
+
+  // The pipeline only uses attachments[0] as the reference image, so new
+  // attachments replace the existing one instead of silently piling up.
+  const replaceAttachments = (files: File[]) => {
+    const imageFiles = files.filter((f) => f.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      showNotice("Only image files can be attached.");
+      return;
+    }
+    if (imageFiles[0].size > MAX_REFERENCE_BYTES) {
+      showNotice("Reference image must be under 10 MB.");
+      return;
+    }
+    for (const url of attachments) URL.revokeObjectURL(url);
+    onAttachmentsChange([URL.createObjectURL(imageFiles[0])]);
+    if (imageFiles.length > 1) showNotice("Only one reference image is used.");
+  };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -64,8 +97,7 @@ export function PromptInput({
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
-    const newUrls = files.map((file) => URL.createObjectURL(file));
-    onAttachmentsChange([...attachments, ...newUrls]);
+    if (files.length > 0) replaceAttachments(files);
     e.target.value = "";
   };
 
@@ -102,11 +134,7 @@ export function PromptInput({
     if (attachmentsDisabled) return;
 
     const files = Array.from(e.dataTransfer?.files ?? []);
-    const imageFiles = files.filter((f) => f.type.startsWith("image/"));
-    if (imageFiles.length === 0) return;
-
-    const newUrls = imageFiles.map((file) => URL.createObjectURL(file));
-    onAttachmentsChange([...attachments, ...newUrls]);
+    replaceAttachments(files);
   };
 
   // Tauri native drag-drop — only active in Tauri runtime
@@ -137,6 +165,8 @@ export function PromptInput({
                     const b64 = await invoke<string>("read_file_as_base64", {
                       path: p,
                     });
+                    // Base64 length ≈ 4/3 of the raw byte size.
+                    if (b64.length * 0.75 > MAX_REFERENCE_BYTES) return null;
                     return `data:image/png;base64,${b64}`;
                   } catch {
                     return null;
@@ -144,8 +174,15 @@ export function PromptInput({
                 }),
               );
               const valid = newUrls.filter((u): u is string => u !== null);
-              if (valid.length === 0) return;
-              onAttachmentsChange([...attachments, ...valid]);
+              if (valid.length === 0) {
+                showNotice("Reference image must be under 10 MB.");
+                return;
+              }
+              for (const url of attachments) URL.revokeObjectURL(url);
+              onAttachmentsChange([valid[0]]);
+              if (valid.length > 1) {
+                showNotice("Only one reference image is used.");
+              }
             }
           },
         );
@@ -177,14 +214,12 @@ export function PromptInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        disabled={inputDisabled}
         placeholder={placeholder}
         rows={2}
         className={cn(
           "w-full bg-transparent resize-none border-0 outline-none ring-0",
           "text-base text-foreground placeholder:text-muted-foreground",
           "leading-relaxed overflow-y-auto m-1.5",
-          inputDisabled && "opacity-60",
         )}
         style={{
           scrollbarWidth: "thin",
@@ -203,7 +238,6 @@ export function PromptInput({
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            multiple
             className="hidden"
             onChange={handleFileChange}
           />
@@ -237,7 +271,7 @@ export function PromptInput({
 
           {attachments.map((src, i) => (
             <div
-              key={i}
+              key={src}
               className="relative group w-7 h-7 rounded-lg overflow-hidden shrink-0"
             >
               <img
@@ -253,6 +287,11 @@ export function PromptInput({
               </button>
             </div>
           ))}
+          {notice && (
+            <span className="text-[11px] text-muted-foreground ml-1 whitespace-nowrap">
+              {notice}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

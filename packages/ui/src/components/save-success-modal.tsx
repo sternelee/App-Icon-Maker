@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
+import { useFocusTrap } from "./focus-trap";
 
 export function SaveSuccessModal({
   fileName,
@@ -10,6 +11,9 @@ export function SaveSuccessModal({
   folderPath: string;
   onClose: () => void;
 }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(cardRef);
+
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -24,7 +28,9 @@ export function SaveSuccessModal({
       onClick={onClose}
     >
       <div
-        className="relative w-[420px] max-w-[calc(100vw-32px)] rounded-xl border border-border bg-background shadow-2xl"
+        ref={cardRef}
+        tabIndex={-1}
+        className="relative w-[420px] max-w-[calc(100vw-32px)] rounded-xl border border-border bg-background shadow-2xl outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border">

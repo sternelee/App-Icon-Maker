@@ -25,6 +25,10 @@ import {
   MODEL_LIST,
   getDefaultModel,
   useAppWorkflow,
+  loadSession,
+  restoreSession,
+  useSessionAutosave,
+  clearSession,
 } from "@app-icon-maker/utils";
 import { tauriTransport } from "@/lib/tauri-transport";
 import {
@@ -51,7 +55,16 @@ export function AppContent() {
   const pipeline = useIconPipeline(tauriTransport);
   const wf = useAppWorkflow(pipeline, model, provider);
 
+  // Restore the last session (survives reloads and app restarts).
+  useEffect(() => {
+    const snap = loadSession();
+    if (snap) void restoreSession(snap, pipeline, wf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useSessionAutosave(wf, pipeline);
+
   const [iconDirty, setIconDirty] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("Generation failed");
   const [saveSuccess, setSaveSuccess] = useState<{
     folderPath: string;
     icnsPath: string;
@@ -133,15 +146,22 @@ export function AppContent() {
         canceled: boolean;
         icns_path: string;
       }>("save_icon", { imageData: Array.from(imageData), format });
-      if (!saved.canceled && saved.icns_path) {
+      if (saved.canceled) return;
+      if (saved.icns_path) {
         setIconDirty(false);
+        clearSession();
         setSaveSuccess({
           folderPath: saved.saved_path,
           icnsPath: saved.icns_path,
         });
+      } else {
+        setErrorTitle("Save failed");
+        wf.setErrorMessage("The icon could not be written to disk. Try saving to a different folder.");
       }
-    } catch {
-      // Silently ignore IPC errors.
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setErrorTitle("Save failed");
+      wf.setErrorMessage(`The icon could not be saved:\n${msg}`);
     }
   };
 
@@ -172,8 +192,13 @@ export function AppContent() {
       {wf.errorMessage && (
         <ErrorModal
           message={wf.errorMessage}
-          onClose={() => wf.setErrorMessage(null)}
+          title={errorTitle}
+          onClose={() => {
+            wf.setErrorMessage(null);
+            setErrorTitle("Generation failed");
+          }}
           onUpdateApiKey={
+            errorTitle === "Generation failed" &&
             generationErrorSuggestsApiKeyIssue(wf.errorMessage)
               ? () => {
                   wf.setErrorMessage(null);

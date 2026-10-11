@@ -1308,6 +1308,33 @@ fn set_openai_api_key(
     Ok(())
 }
 
+/// Remove a provider's stored API key (store + in-memory state).
+#[tauri::command]
+fn clear_api_key(
+    provider: String,
+    app: tauri::AppHandle,
+    state: State<AppState>,
+) -> Result<(), String> {
+    let (store_key, mutex): (&'static str, &Mutex<String>) = match provider.as_str() {
+        "openai" => (OPENAI_API_KEY_KEY, &state.openai_api_key),
+        "gemini" => (GEMINI_API_KEY_KEY, &state.gemini_api_key),
+        "openrouter" => (OPENROUTER_API_KEY_KEY, &state.openrouter_api_key),
+        "fal" => (FAL_API_KEY_KEY, &state.fal_api_key),
+        "stepfun" => (STEPFUN_API_KEY_KEY, &state.stepfun_api_key),
+        "agnes" => (AGNES_API_KEY_KEY, &state.agnes_api_key),
+        "xai" => (XAI_API_KEY_KEY, &state.xai_api_key),
+        "replicate" => (REPLICATE_API_KEY_KEY, &state.replicate_api_key),
+        "ideogram" => (IDEOGRAM_API_KEY_KEY, &state.ideogram_api_key),
+        _ => return Err(format!("Unknown provider: {provider}")),
+    };
+    if let Ok(store) = app.store(STORE_FILE) {
+        store.set(store_key, serde_json::Value::String(String::new()));
+        let _ = store.save();
+    }
+    *mutex.lock().map_err(|e| e.to_string())? = String::new();
+    Ok(())
+}
+
 #[tauri::command]
 fn get_openai_api_key_status(state: State<AppState>) -> Result<ApiKeyStatus, String> {
     let key = state.openai_api_key.lock().map_err(|e| e.to_string())?;
@@ -2628,6 +2655,7 @@ pub fn run() {
             get_stored_ideogram_api_key,
             set_unsaved_icon_state,
             read_file_as_base64,
+            clear_api_key,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

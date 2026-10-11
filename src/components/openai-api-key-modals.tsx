@@ -44,6 +44,15 @@ async function loadKey(provider: Provider): Promise<string> {
   return r.api_key ?? "";
 }
 
+async function clearKey(provider: Provider): Promise<string | null> {
+  try {
+    await invoke("clear_api_key", { provider });
+    return null;
+  } catch {
+    return "Could not remove the API key. Try again.";
+  }
+}
+
 function openExternalUrl(url: string) {
   invoke("open_external_url", { url }).catch(() => {});
 }
@@ -85,6 +94,7 @@ export function OpenAIApiKeyManageModal({
       reason={reason}
       onPersistKey={persistKey}
       onLoadKey={loadKey}
+      onClearKey={clearKey}
       onOpenExternalUrl={openExternalUrl}
       onClose={onClose}
     />

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ExternalLink } from "lucide-react";
 import { ProviderSelect } from "./provider-select";
+import { useFocusTrap } from "./focus-trap";
 import { type Provider, PROVIDER_CONFIG } from "@app-icon-maker/utils";
 
 export type { Provider } from "@app-icon-maker/utils";
@@ -84,6 +85,8 @@ export function ApiKeyStartupModal({
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(cardRef);
 
   const submit = useCallback(async () => {
     const key = value.trim();
@@ -127,7 +130,11 @@ export function ApiKeyStartupModal({
       aria-modal="true"
       aria-labelledby="api-key-startup-title"
     >
-      <div className="relative w-[420px] max-w-[calc(100vw-32px)] rounded-xl border border-border bg-background shadow-2xl">
+      <div
+        ref={cardRef}
+        tabIndex={-1}
+        className="relative w-[420px] max-w-[calc(100vw-32px)] rounded-xl border border-border bg-background shadow-2xl outline-none"
+      >
         <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-border">
           <h2
             id="api-key-startup-title"
@@ -179,6 +186,8 @@ export function ApiKeyStartupModal({
 export interface ApiKeyManageModalProps extends ApiKeyModalBaseProps {
   reason?: "authError" | "settings";
   onLoadKey?: (provider: Provider) => Promise<string>;
+  /** Remove the stored key for the given provider. */
+  onClearKey?: (provider: Provider) => Promise<string | null>;
 }
 
 export function ApiKeyManageModal({
@@ -186,6 +195,7 @@ export function ApiKeyManageModal({
   reason,
   onPersistKey,
   onLoadKey,
+  onClearKey,
   onOpenExternalUrl,
   onClose,
 }: ApiKeyManageModalProps) {
@@ -193,19 +203,46 @@ export function ApiKeyManageModal({
     defaultProvider ?? "openai",
   );
   const [value, setValue] = useState("");
+  const [hadKey, setHadKey] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(cardRef);
 
   // Load stored key when provider changes
   useEffect(() => {
+    setNotice(null);
     if (onLoadKey) {
       onLoadKey(provider)
-        .then((k) => setValue(k))
-        .catch(() => setValue(""));
+        .then((k) => {
+          setValue(k);
+          setHadKey(k.trim().length > 0);
+        })
+        .catch(() => {
+          setValue("");
+          setHadKey(false);
+        });
     } else {
       setValue("");
+      setHadKey(false);
     }
   }, [provider, onLoadKey]);
+
+  const clear = useCallback(async () => {
+    if (!onClearKey) return;
+    setBusy(true);
+    setError(null);
+    const errMsg = await onClearKey(provider);
+    setBusy(false);
+    if (errMsg) {
+      setError(errMsg);
+      return;
+    }
+    setValue("");
+    setHadKey(false);
+    setNotice("Key removed.");
+  }, [onClearKey, provider]);
 
   const submit = useCallback(async () => {
     const key = value.trim();
@@ -233,6 +270,14 @@ export function ApiKeyManageModal({
     }
   };
 
+  useEffect(() => {
+    const onEsc = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape") onClose(false, provider);
+    };
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [onClose, provider]);
+
   const description =
     reason === "authError" ? (
       <>
@@ -254,7 +299,11 @@ export function ApiKeyManageModal({
       aria-modal="true"
       aria-labelledby="api-key-manage-title"
     >
-      <div className="relative w-[420px] max-w-[calc(100vw-32px)] rounded-xl border border-border bg-background shadow-2xl">
+      <div
+        ref={cardRef}
+        tabIndex={-1}
+        className="relative w-[420px] max-w-[calc(100vw-32px)] rounded-xl border border-border bg-background shadow-2xl outline-none"
+      >
         <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-border">
           <h2
             id="api-key-manage-title"
@@ -278,16 +327,34 @@ export function ApiKeyManageModal({
         />
 
         <div className="flex items-center justify-between gap-3 px-4 pb-4">
-          <button
-            type="button"
-            onClick={() => onOpenExternalUrl(PROVIDER_CONFIG[provider].helpUrl)}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground bg-secondary/60 hover:bg-secondary transition-colors shrink-0"
-            aria-label={`Open ${PROVIDER_CONFIG[provider].label} API keys in your browser`}
-          >
-            <ExternalLink className="w-3.5 h-3.5 shrink-0" aria-hidden />
-            Get API Key
-          </button>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onOpenExternalUrl(PROVIDER_CONFIG[provider].helpUrl)}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground bg-secondary/60 hover:bg-secondary transition-colors shrink-0"
+              aria-label={`Open ${PROVIDER_CONFIG[provider].label} API keys in your browser`}
+            >
+              <ExternalLink className="w-3.5 h-3.5 shrink-0" aria-hidden />
+              Get API Key
+            </button>
+            {onClearKey && hadKey && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void clear()}
+                className="h-8 px-3 rounded-lg text-xs font-medium text-destructive hover:bg-destructive/10 bg-secondary/60 transition-colors shrink-0 disabled:opacity-50"
+                aria-label={`Remove saved ${PROVIDER_CONFIG[provider].label} API key`}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {notice && (
+              <span className="text-xs text-emerald-400" role="status">
+                {notice}
+              </span>
+            )}
             <button
               type="button"
               disabled={busy}

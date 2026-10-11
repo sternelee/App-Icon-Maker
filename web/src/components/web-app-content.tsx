@@ -23,6 +23,10 @@ import {
   MODEL_LIST,
   getDefaultModel,
   useAppWorkflow,
+  loadSession,
+  restoreSession,
+  useSessionAutosave,
+  clearSession,
 } from "@app-icon-maker/utils";
 import { createWebTransport } from "../lib/web-transport";
 import { getApiKey, hasApiKey, WEB_PROVIDERS } from "../lib/api-key-manager";
@@ -39,6 +43,13 @@ export function WebAppContent() {
   });
   const pipeline = useIconPipeline(transport);
   const wf = useAppWorkflow(pipeline, model, provider);
+
+  // Restore the last session so a refresh doesn't lose work.
+  useEffect(() => {
+    const snap = loadSession();
+    if (snap) void restoreSession(snap, pipeline, wf);
+  }, []);
+  useSessionAutosave(wf, pipeline);
 
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -94,16 +105,22 @@ export function WebAppContent() {
           : null;
     if (!rawSrc) return;
 
-    const response = await fetch(rawSrc);
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    const fileName = `app-icon.${format === "jpeg" ? "jpg" : format}`;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
-    setSaveSuccess(fileName);
+    try {
+      const response = await fetch(rawSrc);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const fileName = `app-icon.${format === "jpeg" ? "jpg" : format}`;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+      clearSession();
+      setSaveSuccess(fileName);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      wf.setErrorMessage(`The icon could not be downloaded:\n${msg}`);
+    }
   };
 
   const onPrimary = useCallback(() => {

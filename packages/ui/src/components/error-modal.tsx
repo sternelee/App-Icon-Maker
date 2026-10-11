@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Copy, X } from "lucide-react";
 import { cn } from "@app-icon-maker/utils";
+import { useFocusTrap } from "./focus-trap";
 
 export function generationErrorSuggestsApiKeyIssue(message: string): boolean {
   const m = message.toLowerCase();
@@ -73,13 +74,17 @@ export function ErrorModal({
   onClose,
   onUpdateApiKey,
   actionLabel,
+  title = "Generation failed",
 }: {
   message: string;
   onClose: () => void;
   onUpdateApiKey?: () => void;
   actionLabel?: string;
+  title?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(cardRef);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(message).then(() => {
@@ -102,12 +107,14 @@ export function ErrorModal({
       onClick={onClose}
     >
       <div
-        className="relative w-[420px] max-w-[calc(100vw-32px)] rounded-xl border border-border bg-background shadow-2xl"
+        ref={cardRef}
+        tabIndex={-1}
+        className="relative w-[420px] max-w-[calc(100vw-32px)] rounded-xl border border-border bg-background shadow-2xl outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border">
           <span className="text-sm font-medium text-destructive">
-            Generation failed
+            {title}
           </span>
           <button
             onClick={onClose}

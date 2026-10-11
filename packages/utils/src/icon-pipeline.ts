@@ -25,6 +25,8 @@ export interface IconPipeline {
     referenceDataUrl?: string,
   ) => void;
   cancel: () => void;
+  /** Restore previously persisted raw variants (recomputes squircle masks). */
+  restore: (rawVariants: (string | null)[]) => Promise<void>;
 }
 
 const SQUIRCLE_N = 3.2;
@@ -50,7 +52,7 @@ function squirclePath(width: number, height: number): Path2D {
   return path;
 }
 
-async function applySquircleMask(dataUrl: string): Promise<string> {
+export async function applySquircleMask(dataUrl: string): Promise<string> {
   const bitmap = await createImageBitmap(
     await fetch(dataUrl).then((r) => r.blob()),
   );
@@ -104,6 +106,25 @@ export function useIconPipeline(transport: Transport): IconPipeline {
 
   const cancel = useCallback(() => {
     cancelledRef.current = true;
+  }, []);
+
+  const restore = useCallback(async (raws: (string | null)[]) => {
+    const masked: (string | null)[] = [null, null, null];
+    const restoredRaw: (string | null)[] = [null, null, null];
+    for (let i = 0; i < Math.min(raws.length, 3); i++) {
+      const raw = raws[i];
+      if (!raw) continue;
+      restoredRaw[i] = raw;
+      try {
+        masked[i] = await applySquircleMask(raw);
+      } catch {
+        masked[i] = raw;
+      }
+    }
+    setRawVariants(restoredRaw);
+    setVariants(masked);
+    setStatus("done");
+    setProgress({ fraction: 1, label: "" });
   }, []);
 
   const generate = useCallback(
@@ -191,5 +212,5 @@ export function useIconPipeline(transport: Transport): IconPipeline {
     [transport],
   );
 
-  return { status, progress, variants, rawVariants, generate, cancel };
+  return { status, progress, variants, rawVariants, generate, cancel, restore };
 }
