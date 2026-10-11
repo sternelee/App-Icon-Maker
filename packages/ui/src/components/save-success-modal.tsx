@@ -2,12 +2,12 @@ import { useEffect } from "react";
 import { X } from "lucide-react";
 
 export function SaveSuccessModal({
+  fileName,
   folderPath,
-  icnsPath,
   onClose,
 }: {
+  fileName: string;
   folderPath: string;
-  icnsPath: string;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -43,7 +43,7 @@ export function SaveSuccessModal({
           <p className="text-sm text-muted-foreground leading-relaxed">
             Your icon was saved as{" "}
             <span className="text-foreground font-medium">
-              {icnsPath.replace(/^.*[/\\]/, "") || "app.icns"}
+              {fileName || "app-icon.png"}
             </span>{" "}
             in the folder below.
           </p>

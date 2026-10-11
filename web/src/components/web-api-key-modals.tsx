@@ -21,6 +21,7 @@ export function WebApiKeyModal({
     const trimmed = key.trim();
     if (!trimmed) return "Enter your API key.";
     setApiKey(provider, trimmed);
+    localStorage.removeItem("web:api-key-modal-dismissed");
     return null;
   }
 
@@ -41,6 +42,10 @@ export function WebApiKeyModal({
         onClose={(saved, provider) => {
           if (saved && provider) onClose(provider);
           else onClose();
+        }}
+        onSkip={() => {
+          localStorage.setItem("web:api-key-modal-dismissed", "1");
+          onClose();
         }}
       />
     );

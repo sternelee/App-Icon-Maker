@@ -13,6 +13,8 @@ import {
   SelectTrigger,
   SelectSeparator,
   SelectValue,
+  ProviderSelect,
+  isQuotaOrRateLimitError,
   generationErrorSuggestsApiKeyIssue,
 } from "@app-icon-maker/ui";
 import {
@@ -38,16 +40,38 @@ export function WebAppContent() {
   const pipeline = useIconPipeline(transport);
   const wf = useAppWorkflow(pipeline, model, provider);
 
-  const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const [falCustom, setFalCustom] = useState(false);
-  const [falInput, setFalInput] = useState("");
+  const [falCustom, setFalCustom] = useState<boolean>(() => {
+    return localStorage.getItem("web:fal_custom") === "true";
+  });
+  const [falInput, setFalInput] = useState<string>(() => {
+    return localStorage.getItem("web:fal_custom_model") || "";
+  });
 
   useEffect(() => {
-    if (!WEB_PROVIDERS.some((p) => hasApiKey(p))) {
+    if (
+      !WEB_PROVIDERS.some((p) => hasApiKey(p)) &&
+      localStorage.getItem("web:api-key-modal-dismissed") !== "1"
+    ) {
       setShowApiKeyModal(true);
     }
   }, []);
+
+  // Warn before leaving with unsaved work (variants, refine progress, prompt).
+  const hasUnsavedWork =
+    wf.iconState === "generating" ||
+    wf.iconState === "generated" ||
+    wf.iconState === "refine" ||
+    wf.prompt.trim().length > 0;
+  useEffect(() => {
+    if (!hasUnsavedWork) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [hasUnsavedWork]);
 
   useEffect(() => {
     localStorage.setItem("web:provider", provider);
@@ -75,10 +99,11 @@ export function WebAppContent() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `app-icon.${format === "jpeg" ? "jpg" : format}`;
+    const fileName = `app-icon.${format === "jpeg" ? "jpg" : format}`;
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
-    setSaveSuccess(true);
+    setSaveSuccess(fileName);
   };
 
   const onPrimary = useCallback(() => {
@@ -109,14 +134,19 @@ export function WebAppContent() {
                 }
               : undefined
           }
+          actionLabel={
+            isQuotaOrRateLimitError(wf.errorMessage)
+              ? "Check key & billing"
+              : "Update API key"
+          }
         />
       )}
 
       {saveSuccess && (
         <SaveSuccessModal
+          fileName={saveSuccess}
           folderPath="Downloads"
-          icnsPath=""
-          onClose={() => setSaveSuccess(false)}
+          onClose={() => setSaveSuccess(null)}
         />
       )}
 
@@ -134,6 +164,16 @@ export function WebAppContent() {
       )}
 
       <div className="flex items-center px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+        <ProviderSelect
+          provider={provider}
+          onChange={(p) => {
+            setProvider(p);
+            setModel(getDefaultModel(p));
+            setFalCustom(false);
+          }}
+          disabled={wf.iconState === "generating"}
+          className="h-8 text-xs w-[104px] shrink-0 min-[480px]:w-[128px]"
+        />
         {provider === "fal" && falCustom ? (
           <div className="flex items-center">
             <input
@@ -259,6 +299,13 @@ export function WebAppContent() {
       </div>
 
       <div className="flex flex-col items-center px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+        {wf.iconState === "generating" && (
+          <p className="text-xs text-muted-foreground mb-2 animate-pulse">
+            Generating three variants…
+            {(provider === "fal" || provider === "replicate") &&
+              " This can take up to a minute."}
+          </p>
+        )}
         <PromptInput
           value={wf.prompt}
           onChange={wf.setPrompt}
@@ -274,6 +321,7 @@ export function WebAppContent() {
           attachments={wf.attachments}
           onAttachmentsChange={wf.setAttachments}
           onOpenApiKeySettings={() => setShowApiKeyModal(true)}
+          attachmentsDisabled={wf.iconState === "refine"}
         />
       </div>
     </div>

@@ -1,12 +1,6 @@
 import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
 import { ExternalLink } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
+import { ProviderSelect } from "./provider-select";
 import { type Provider, PROVIDER_CONFIG } from "@app-icon-maker/utils";
 
 export type { Provider } from "@app-icon-maker/utils";
@@ -16,37 +10,6 @@ export interface ApiKeyModalBaseProps {
   onPersistKey: (provider: Provider, key: string) => Promise<string | null>;
   onOpenExternalUrl: (url: string) => void;
   onClose: (saved: boolean, provider?: Provider) => void;
-}
-
-function ProviderSelect({
-  provider,
-  onChange,
-  disabled,
-}: {
-  provider: Provider;
-  onChange: (p: Provider) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <Select
-      value={provider}
-      onValueChange={(v) => v && onChange(v as Provider)}
-      disabled={disabled}
-    >
-      <SelectTrigger className="h-8 text-xs w-[150px]">
-        <SelectValue placeholder="Select provider">
-          {(v: any) => PROVIDER_CONFIG[v as Provider]?.label || v}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {(["openai", "gemini", "openrouter", "fal", "stepfun", "agnes", "xai", "replicate", "ideogram"] as Provider[]).map((p) => (
-          <SelectItem key={p} value={p}>
-            {PROVIDER_CONFIG[p].label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
 }
 
 function ApiKeyForm({
@@ -113,7 +76,8 @@ export function ApiKeyStartupModal({
   onPersistKey,
   onOpenExternalUrl,
   onClose,
-}: ApiKeyModalBaseProps) {
+  onSkip,
+}: ApiKeyModalBaseProps & { onSkip?: () => void }) {
   const [provider, setProvider] = useState<Provider>(
     defaultProvider ?? "openai",
   );
@@ -147,6 +111,15 @@ export function ApiKeyStartupModal({
     }
   };
 
+  useEffect(() => {
+    if (!onSkip) return;
+    const onEsc = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape") onSkip();
+    };
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [onSkip]);
+
   return (
     <div
       className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 backdrop-blur-sm"
@@ -176,12 +149,22 @@ export function ApiKeyStartupModal({
           onOpenExternalUrl={onOpenExternalUrl}
         />
 
-        <div className="flex items-center justify-end gap-3 px-4 pb-4">
+        <div className="flex items-center justify-between gap-3 px-4 pb-4">
+          {onSkip && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onSkip}
+              className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground bg-secondary/60 hover:bg-secondary transition-colors disabled:opacity-50"
+            >
+              Not now
+            </button>
+          )}
           <button
             type="button"
             disabled={busy}
             onClick={() => void submit()}
-            className="h-8 px-4 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 shrink-0"
+            className="h-8 px-4 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 shrink-0 ml-auto"
           >
             {busy ? "Saving…" : "Continue"}
           </button>

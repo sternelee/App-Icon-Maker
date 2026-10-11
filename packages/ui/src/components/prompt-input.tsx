@@ -31,6 +31,7 @@ export function PromptInput({
   attachments,
   onAttachmentsChange,
   onOpenApiKeySettings,
+  attachmentsDisabled,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -44,6 +45,9 @@ export function PromptInput({
   attachments: string[];
   onAttachmentsChange: (attachments: string[]) => void;
   onOpenApiKeySettings: () => void;
+  /** Hide the attach button and ignore file drops (e.g. in refine mode, where
+   *  the confirmed base icon is the reference image). */
+  attachmentsDisabled?: boolean;
 }) {
   const [dragOver, setDragOver] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -95,6 +99,7 @@ export function PromptInput({
     e.preventDefault();
     e.stopPropagation();
     setDragOver(false);
+    if (attachmentsDisabled) return;
 
     const files = Array.from(e.dataTransfer?.files ?? []);
     const imageFiles = files.filter((f) => f.type.startsWith("image/"));
@@ -121,6 +126,7 @@ export function PromptInput({
               setDragOver(false);
             } else if (type === "drop") {
               setDragOver(false);
+              if (attachmentsDisabled) return;
               const imagePaths: string[] = (paths ?? []).filter((p: string) =>
                 /.(png|jpg|jpeg|gif|webp|bmp|svg)$/i.test(p),
               );
@@ -151,7 +157,7 @@ export function PromptInput({
     return () => {
       unlisten?.();
     };
-  }, [onAttachmentsChange, attachments]);
+  }, [onAttachmentsChange, attachments, attachmentsDisabled]);
 
   return (
     <div
@@ -201,17 +207,19 @@ export function PromptInput({
             className="hidden"
             onChange={handleFileChange}
           />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className={cn(
-              "flex items-center justify-center w-8 h-8 rounded-full",
-              "text-muted-foreground hover:text-foreground hover:bg-white/10",
-              "transition-colors shrink-0",
-            )}
-            title="Attach reference image"
-          >
-            <ImagePlus className="w-4 h-4" />
-          </button>
+          {!attachmentsDisabled && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "flex items-center justify-center w-8 h-8 rounded-full",
+                "text-muted-foreground hover:text-foreground hover:bg-white/10",
+                "transition-colors shrink-0",
+              )}
+              title="Attach reference image"
+            >
+              <ImagePlus className="w-4 h-4" />
+            </button>
+          )}
 
           <button
             type="button"

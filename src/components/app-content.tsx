@@ -8,6 +8,8 @@ import {
   generationErrorSuggestsApiKeyIssue,
   SquircleClipDefs,
   TitleBarStatus,
+  ProviderSelect,
+  isQuotaOrRateLimitError,
   Select,
   SelectContent,
   SelectGroup,
@@ -68,6 +70,9 @@ export function AppContent() {
       { cmd: "get_fal_api_key_status" },
       { cmd: "get_stepfun_api_key_status" },
       { cmd: "get_agnes_api_key_status" },
+      { cmd: "get_xai_api_key_status" },
+      { cmd: "get_replicate_api_key_status" },
+      { cmd: "get_ideogram_api_key_status" },
     ];
     Promise.all(
       providers.map((p) =>
@@ -75,7 +80,10 @@ export function AppContent() {
       ),
     )
       .then((results) => {
-        if (results.every((s) => s.has_key !== true)) {
+        if (
+          results.every((s) => s.has_key !== true) &&
+          localStorage.getItem("api-key-modal-dismissed") !== "1"
+        ) {
           setOpenAIApiKeyStartupOpen(true);
         }
       })
@@ -173,13 +181,18 @@ export function AppContent() {
                 }
               : undefined
           }
+          actionLabel={
+            isQuotaOrRateLimitError(wf.errorMessage)
+              ? "Check key & billing"
+              : "Update API key"
+          }
         />
       )}
 
       {saveSuccess && (
         <SaveSuccessModal
+          fileName={saveSuccess.icnsPath.split(/[/\\]/).pop() || ""}
           folderPath={saveSuccess.folderPath}
-          icnsPath={saveSuccess.icnsPath}
           onClose={() => setSaveSuccess(null)}
         />
       )}
@@ -187,8 +200,13 @@ export function AppContent() {
       {openAIApiKeyStartupOpen && (
         <OpenAIApiKeyStartupModal
           onSaved={(p: Provider) => {
+            localStorage.removeItem("api-key-modal-dismissed");
             setProvider(p);
             setModel(getDefaultModel(p));
+            setOpenAIApiKeyStartupOpen(false);
+          }}
+          onSkip={() => {
+            localStorage.setItem("api-key-modal-dismissed", "1");
             setOpenAIApiKeyStartupOpen(false);
           }}
         />
@@ -218,6 +236,16 @@ export function AppContent() {
       )}
 
       <div className="flex items-center px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] app-no-drag">
+        <ProviderSelect
+          provider={provider}
+          onChange={(p) => {
+            setProvider(p);
+            setModel(getDefaultModel(p));
+            setFalCustom(false);
+          }}
+          disabled={wf.iconState === "generating"}
+          className="h-8 text-xs w-[104px] shrink-0 min-[480px]:w-[128px]"
+        />
         {provider === "fal" && falCustom ? (
           <div className="flex items-center">
             <input
@@ -345,6 +373,13 @@ export function AppContent() {
       </div>
 
       <div className="flex flex-col items-center px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] app-no-drag">
+        {wf.iconState === "generating" && (
+          <p className="text-xs text-muted-foreground mb-2 animate-pulse">
+            Generating three variants…
+            {(provider === "fal" || provider === "replicate") &&
+              " This can take up to a minute."}
+          </p>
+        )}
         <PromptInput
           value={wf.prompt}
           onChange={wf.setPrompt}
@@ -360,6 +395,7 @@ export function AppContent() {
           attachments={wf.attachments}
           onAttachmentsChange={wf.setAttachments}
           onOpenApiKeySettings={() => setOpenAIApiKeyManageReason("settings")}
+          attachmentsDisabled={wf.iconState === "refine"}
         />
       </div>
     </div>

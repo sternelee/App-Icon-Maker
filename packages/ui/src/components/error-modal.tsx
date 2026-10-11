@@ -27,14 +27,57 @@ export function generationErrorSuggestsApiKeyIssue(message: string): boolean {
   return false;
 }
 
+export function isQuotaOrRateLimitError(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes("insufficient_quota") ||
+    m.includes("rate_limit") ||
+    m.includes("too many requests") ||
+    m.includes("billing") ||
+    /\b429\b/.test(m)
+  );
+}
+
+/**
+ * Extract a human-readable message from a raw provider error (often a JSON
+ * error body) and map known failure classes to actionable copy.
+ */
+export function friendlyGenerationError(raw: string): string {
+  let msg = raw;
+  try {
+    const parsed = JSON.parse(raw);
+    const inner =
+      parsed?.error?.message ?? parsed?.error ?? parsed?.message ?? null;
+    if (typeof inner === "string") msg = inner;
+  } catch {
+    // Not JSON — use the raw text.
+  }
+  const m = msg.toLowerCase();
+  if (m.includes("insufficient_quota") || m.includes("quota")) {
+    return "Your API key's quota is used up or billing is inactive. Top up your provider account, then try again.";
+  }
+  if (m.includes("rate_limit") || m.includes("too many requests") || /\b429\b/.test(m)) {
+    return "Rate limit reached — too many requests. Wait a moment and try again.";
+  }
+  if (m.includes("timed out") || m.includes("timeout")) {
+    return "The provider took too long to respond. Try again.";
+  }
+  if (generationErrorSuggestsApiKeyIssue(msg)) {
+    return `The provider rejected your API key. Check that it's correct and active.\n\nDetails: ${msg}`;
+  }
+  return msg;
+}
+
 export function ErrorModal({
   message,
   onClose,
   onUpdateApiKey,
+  actionLabel,
 }: {
   message: string;
   onClose: () => void;
   onUpdateApiKey?: () => void;
+  actionLabel?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -85,7 +128,7 @@ export function ErrorModal({
               scrollbarColor: "rgba(255,255,255,0.15) transparent",
             }}
           >
-            {message}
+            {friendlyGenerationError(message)}
           </pre>
         </div>
 
@@ -125,7 +168,7 @@ export function ErrorModal({
               onClick={onUpdateApiKey}
               className="h-8 px-4 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              Update API key
+              {actionLabel ?? "Update API key"}
             </button>
           )}
         </div>

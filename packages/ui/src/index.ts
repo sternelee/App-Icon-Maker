@@ -2,6 +2,8 @@ export { BlueprintFace } from "./components/blueprint-face";
 export {
   ErrorModal,
   generationErrorSuggestsApiKeyIssue,
+  isQuotaOrRateLimitError,
+  friendlyGenerationError,
 } from "./components/error-modal";
 export { IconFace } from "./components/icon-face";
 export { IconStack } from "./components/icon-stack";
@@ -27,6 +29,7 @@ export {
   SelectValue,
 } from "./components/ui/select";
 export { VariantPicker } from "./components/variant-picker";
+export { ProviderSelect, PROVIDERS } from "./components/provider-select";
 export {
   ApiKeyStartupModal,
   ApiKeyManageModal,

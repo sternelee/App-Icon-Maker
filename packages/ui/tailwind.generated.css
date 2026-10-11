@@ -24,6 +24,7 @@
     --leading-relaxed: 1.625;
     --radius-md: calc(var(--radius) * 0.8);
     --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --animate-pulse: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     --blur-sm: 8px;
     --default-transition-duration: 150ms;
     --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -261,6 +262,9 @@
   .mt-1\.5 {
     margin-top: calc(var(--spacing) * 1.5);
   }
+  .mb-2 {
+    margin-bottom: calc(var(--spacing) * 2);
+  }
   .ml-auto {
     margin-left: auto;
   }
@@ -361,6 +365,9 @@
   .w-12 {
     width: calc(var(--spacing) * 12);
   }
+  .w-\[104px\] {
+    width: 104px;
+  }
   .w-\[150px\] {
     width: 150px;
   }
@@ -406,6 +413,9 @@
   }
   .transform {
     transform: var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,);
+  }
+  .animate-pulse {
+    animation: var(--animate-pulse);
   }
   .cursor-default {
     cursor: default;
@@ -1123,6 +1133,11 @@
       &[data-slot="select-value"] {
         gap: calc(var(--spacing) * 1.5);
       }
+    }
+  }
+  .min-\[480px\]\:w-\[128px\] {
+    @media (width >= 480px) {
+      width: 128px;
     }
   }
   .min-\[480px\]\:w-\[260px\] {
@@ -1974,6 +1989,11 @@
 @property --tw-ease {
   syntax: "*";
   inherits: false;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
 }
 @layer properties {
   @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {

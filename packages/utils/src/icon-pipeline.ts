@@ -97,6 +97,10 @@ export function useIconPipeline(transport: Transport): IconPipeline {
   ]);
 
   const cancelledRef = useRef(false);
+  // Monotonic id per generate() call. Any async continuation from an older
+  // generation must not touch state (prevents a stale fal/replicate poll from
+  // clobbering a newer request after cancel + regenerate).
+  const generationRef = useRef(0);
 
   const cancel = useCallback(() => {
     cancelledRef.current = true;
@@ -109,9 +113,14 @@ export function useIconPipeline(transport: Transport): IconPipeline {
       provider: string,
       referenceDataUrl?: string,
     ) => {
+      const myGeneration = ++generationRef.current;
       cancelledRef.current = false;
-      setVariants([null, null, null]);
-      setRawVariants([null, null, null]);
+      // Stale = a newer generate() superseded this one: never touch state.
+      // Cancelled = user stopped the current one: restore idle.
+      const isStale = () => generationRef.current !== myGeneration;
+      const isCancelled = () => cancelledRef.current;
+      // Keep previous variants visible until new ones arrive, so a
+      // regenerate/cancel never destroys work in place.
       setStatus("generating");
       setProgress({ fraction: 0, label: "" });
 
@@ -125,7 +134,8 @@ export function useIconPipeline(transport: Transport): IconPipeline {
           }
         }
 
-        if (cancelledRef.current) {
+        if (isStale()) return;
+        if (isCancelled()) {
           setStatus("idle");
           return;
         }
@@ -141,7 +151,8 @@ export function useIconPipeline(transport: Transport): IconPipeline {
           seed: 0,
         });
 
-        if (cancelledRef.current) {
+        if (isStale()) return;
+        if (isCancelled()) {
           setStatus("idle");
           setProgress({ fraction: 0, label: "" });
           return;
@@ -165,7 +176,8 @@ export function useIconPipeline(transport: Transport): IconPipeline {
         setStatus("done");
         setProgress({ fraction: 1, label: "" });
       } catch (err) {
-        if (cancelledRef.current) {
+        if (isStale()) return;
+        if (isCancelled()) {
           setStatus("idle");
           setProgress({ fraction: 0, label: "" });
           return;

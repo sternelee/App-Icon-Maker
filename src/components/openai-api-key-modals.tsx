@@ -52,8 +52,10 @@ function openExternalUrl(url: string) {
 
 export function OpenAIApiKeyStartupModal({
   onSaved,
+  onSkip,
 }: {
   onSaved: (provider: Provider) => void;
+  onSkip?: () => void;
 }) {
   return (
     <ApiKeyStartupModal
@@ -63,6 +65,7 @@ export function OpenAIApiKeyStartupModal({
       onClose={(saved, provider) => {
         if (saved && provider) onSaved(provider);
       }}
+      onSkip={onSkip}
     />
   );
 }
